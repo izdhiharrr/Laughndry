@@ -627,12 +627,12 @@
     </div>
 
     <script>
-        // Ambil data keranjang dari localStorage
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        // Ambil data keranjang dari sessionStorage
+        let cart = JSON.parse(sessionStorage.getItem('cart')) || [];
 
         // Inisialisasi properti qty jika belum ada
         cart = cart.map(item => ({ ...item, qty: item.qty || 1 }));
-        localStorage.setItem('cart', JSON.stringify(cart));
+        sessionStorage.setItem('cart', JSON.stringify(cart));
 
         const cartList = document.getElementById('cart-list');
         const cartEmpty = document.getElementById('cart-empty');
@@ -693,7 +693,7 @@
             if (btnRemove) {
                 const idx = btnRemove.getAttribute('data-idx');
                 cart.splice(idx, 1);
-                localStorage.setItem('cart', JSON.stringify(cart));
+                sessionStorage.setItem('cart', JSON.stringify(cart));
                 renderCart();
             } else if (btnMinus) {
                 const idx = btnMinus.getAttribute('data-idx');
@@ -702,12 +702,12 @@
                 } else {
                     cart.splice(idx, 1);
                 }
-                localStorage.setItem('cart', JSON.stringify(cart));
+                sessionStorage.setItem('cart', JSON.stringify(cart));
                 renderCart();
             } else if (btnPlus) {
                 const idx = btnPlus.getAttribute('data-idx');
                 cart[idx].qty = (cart[idx].qty || 1) + 1;
-                localStorage.setItem('cart', JSON.stringify(cart));
+                sessionStorage.setItem('cart', JSON.stringify(cart));
                 renderCart();
             }
         });
@@ -813,7 +813,7 @@
 
         function closeSuccessModal() {
             document.getElementById('success-modal').classList.remove('show');
-            localStorage.removeItem('cart');
+            sessionStorage.removeItem('cart');
             cart = [];
             renderCart();
             // Reset customer form

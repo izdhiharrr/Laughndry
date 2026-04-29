@@ -34,12 +34,12 @@ require_once __DIR__ . '/header.php';
 </div>
 
 <script>
-    // Simpan cart di localStorage dan redirect ke daftar-laundry.php dengan data
+    // Simpan cart di sessionStorage dan redirect ke daftar-laundry.php dengan data
     document.addEventListener('DOMContentLoaded', () => {
         const cartCount = document.getElementById('cart-count');
         const items = document.querySelectorAll('.add-to-cart');
         const cartLink = document.getElementById('cart-link');
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let cart = JSON.parse(sessionStorage.getItem('cart')) || [];
 
         function updateCartUI() {
             let count = cart.length;
@@ -91,7 +91,7 @@ require_once __DIR__ . '/header.php';
                     cart.push({ category, name, price, icon });
                 }
 
-                localStorage.setItem('cart', JSON.stringify(cart));
+                sessionStorage.setItem('cart', JSON.stringify(cart));
                 updateCartUI();
             });
         });
