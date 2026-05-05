@@ -549,64 +549,6 @@
                 <!-- Summary inserted via JS -->
             </div>
 
-
-            <div class="form-group">
-                <label class="form-label">Pilih Metode Pembayaran</label>
-                <div class="payment-methods">
-                    <label class="payment-method-card">
-                        <input type="radio" name="payment_method" value="qris" checked onchange="updatePaymentDetails()">
-                        <div class="card-content">
-                            <span class="material-symbols-outlined icon">qr_code_scanner</span>
-                            <span>QRIS</span>
-                        </div>
-                    </label>
-                    <label class="payment-method-card">
-                        <input type="radio" name="payment_method" value="transfer" onchange="updatePaymentDetails()">
-                        <div class="card-content">
-                            <span class="material-symbols-outlined icon">account_balance</span>
-                            <span>Transfer Bank</span>
-                        </div>
-                    </label>
-                    <label class="payment-method-card">
-                        <input type="radio" name="payment_method" value="tunai" onchange="updatePaymentDetails()">
-                        <div class="card-content">
-                            <span class="material-symbols-outlined icon">payments</span>
-                            <span>Tunai</span>
-                        </div>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Payment Details Sub-sections -->
-            <div id="details-qris" class="payment-details-box active">
-                <p style="margin-bottom: 16px; color: #4b5563; font-size: 0.95rem;">Scan QR Code di bawah ini menggunakan aplikasi e-wallet Anda.</p>
-                <div style="background: white; padding: 16px; border-radius: 16px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin: 0 auto 16px; border: 1px solid #e2e8f0;">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=Laughndry_Payment" alt="QRIS Barcode" style="width: 200px; height: 200px; display: block; border-radius: 8px;">
-                    <div style="margin-top: 12px; font-weight: bold; color: #1e293b; font-size: 1.1rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <span class="material-symbols-outlined" style="color: #10b981; font-size: 20px;">verified_user</span>
-                        QRIS Laughndry
-                    </div>
-                </div>
-                <p style="font-weight: bold; color: #10b981; font-size: 1.2rem;">Total: <span class="qris-total"></span></p>
-            </div>
-
-            <div id="details-transfer" class="payment-details-box">
-                <select class="form-select" id="bank-selector" style="margin-bottom: 16px;" onchange="updateBankDetails()">
-                    <option value="BCA">BCA Virtual Account</option>
-                    <option value="Mandiri">Mandiri Virtual Account</option>
-                    <option value="BRI">BRI Virtual Account</option>
-                </select>
-                <p style="color: #4b5563; margin-bottom: 8px; font-size: 0.95rem;">Nomor Virtual Account <span id="bank-name">BCA</span>:</p>
-                <div class="va-number" id="va-number">8290 1234 5678</div>
-                <br>
-                <button class="copy-btn" onclick="copyVA()"><span class="material-symbols-outlined" style="font-size: 18px; margin-right: 6px;">content_copy</span>Salin Nomor VA</button>
-            </div>
-
-            <div id="details-tunai" class="payment-details-box">
-                <span class="material-symbols-outlined" style="font-size: 48px; color: #f59e0b; margin-bottom: 12px;">info</span>
-                <p style="color: #4b5563; line-height: 1.5;">Anda dapat membayar dengan uang tunai saat kurir mengambil cucian Anda atau saat Anda mengantarkannya ke outlet kami.</p>
-            </div>
-
             <div class="btn-group">
                 <button id="btn-back" class="cart-btn btn-secondary">Kembali</button>
                 <button id="btn-confirm" class="cart-btn btn-primary">Bayar Sekarang</button>
@@ -614,7 +556,80 @@
         </div>
     </div>
 
-    <!-- Success Modal -->
+    <!-- ============ PAYMENT METHOD POPUP MODAL ============ -->
+    <div class="modal-overlay" id="payment-modal">
+        <div class="success-modal" style="max-width: 480px; padding: 32px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 24px;">
+                <span class="material-symbols-outlined" style="font-size: 32px; color: #00433a;">payments</span>
+                <span style="font-size: 1.4rem; font-weight: 800; color: #00433a;">Pilih Pembayaran</span>
+            </div>
+
+            <div style="background: #ecfdf5; border-radius: 12px; padding: 14px; margin-bottom: 20px; text-align: center;">
+                <span style="font-size: 0.85rem; color: #065f46;">Total Tagihan</span>
+                <div style="font-size: 1.6rem; font-weight: 900; color: #00433a;" id="modal-total">Rp 0</div>
+            </div>
+
+            <!-- Payment method cards -->
+            <div class="payment-methods" style="margin-bottom: 16px;">
+                <label class="payment-method-card">
+                    <input type="radio" name="modal_payment_method" value="qris" checked onchange="updateModalPayment()">
+                    <div class="card-content">
+                        <span class="material-symbols-outlined icon">qr_code_scanner</span>
+                        <span>QRIS</span>
+                    </div>
+                </label>
+                <label class="payment-method-card">
+                    <input type="radio" name="modal_payment_method" value="transfer" onchange="updateModalPayment()">
+                    <div class="card-content">
+                        <span class="material-symbols-outlined icon">account_balance</span>
+                        <span>Transfer</span>
+                    </div>
+                </label>
+                <label class="payment-method-card">
+                    <input type="radio" name="modal_payment_method" value="tunai" onchange="updateModalPayment()">
+                    <div class="card-content">
+                        <span class="material-symbols-outlined icon">payments</span>
+                        <span>Tunai</span>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Payment detail panels -->
+            <div id="modal-details-qris" class="payment-details-box active">
+                <p style="margin-bottom: 16px; color: #4b5563; font-size: 0.9rem;">Scan QR Code menggunakan e-wallet Anda.</p>
+                <div style="background: white; padding: 14px; border-radius: 14px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin: 0 auto 12px; border: 1px solid #e2e8f0;">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=Laughndry_Payment" alt="QRIS" style="width: 180px; height: 180px; display: block; border-radius: 8px;">
+                    <div style="margin-top: 10px; font-weight: bold; color: #1e293b; font-size: 1rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <span class="material-symbols-outlined" style="color: #10b981; font-size: 18px;">verified_user</span>
+                        QRIS Laughndry
+                    </div>
+                </div>
+            </div>
+
+            <div id="modal-details-transfer" class="payment-details-box">
+                <select class="form-select" id="modal-bank-selector" style="margin-bottom: 12px;" onchange="updateModalBank()">
+                    <option value="BCA">BCA Virtual Account</option>
+                    <option value="Mandiri">Mandiri Virtual Account</option>
+                    <option value="BRI">BRI Virtual Account</option>
+                </select>
+                <p style="color: #4b5563; margin-bottom: 8px; font-size: 0.9rem;">Nomor VA <span id="modal-bank-name">BCA</span>:</p>
+                <div class="va-number" id="modal-va-number">8290 1234 5678</div>
+                <br>
+                <button class="copy-btn" onclick="copyModalVA()"><span class="material-symbols-outlined" style="font-size: 18px; margin-right: 6px;">content_copy</span>Salin VA</button>
+            </div>
+
+            <div id="modal-details-tunai" class="payment-details-box">
+                <span class="material-symbols-outlined" style="font-size: 40px; color: #f59e0b; margin-bottom: 10px;">info</span>
+                <p style="color: #4b5563; line-height: 1.5; font-size: 0.9rem;">Bayar tunai saat kurir mengambil cucian Anda atau saat mengantarkan ke outlet kami.</p>
+            </div>
+
+            <button id="btn-confirm-payment" class="success-btn" style="margin-top: 20px; background: #00433a;">
+                Konfirmasi Pembayaran
+            </button>
+        </div>
+    </div>
+
+    <!-- ============ SUCCESS MODAL ============ -->
     <div class="modal-overlay" id="success-modal">
         <div class="success-modal">
             <div class="success-icon">
@@ -726,7 +741,6 @@
             cartView.style.display = 'none';
             paymentView.style.display = 'block';
             renderPaymentSummary();
-            updatePaymentDetails();
         });
 
         btnBack.addEventListener('click', () => {
@@ -734,17 +748,17 @@
             cartView.style.display = 'block';
         });
 
+        // ═══════════════════════════════════════════
+        // STEP 1: Bayar Sekarang → Validate → Show Payment Popup (TANPA save ke DB)
+        // ═══════════════════════════════════════════
         btnConfirm.addEventListener('click', () => {
-            // Validate customer info
             const name = document.getElementById('customer-name');
             const phone = document.getElementById('customer-phone');
             const address = document.getElementById('customer-address');
             let valid = true;
 
             // Reset errors
-            [name, phone, address].forEach(el => {
-                el.classList.remove('error');
-            });
+            [name, phone, address].forEach(el => el.classList.remove('error'));
             document.querySelectorAll('.input-error-msg').forEach(el => el.classList.remove('show'));
 
             if (!name.value.trim()) {
@@ -764,80 +778,54 @@
             }
 
             if (!valid) {
-                // Scroll to the first error
                 document.querySelector('.form-input.error').focus();
                 return;
             }
 
-            // Disable tombol supaya tidak double-click
-            btnConfirm.disabled = true;
-            btnConfirm.textContent = 'Memproses...';
+            // Update total di payment modal
+            document.getElementById('modal-total').textContent = `Rp ${total.toLocaleString('id-ID')}`;
 
-            // Ambil metode pembayaran
-            const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
-            const bankSelector = document.getElementById('bank-selector');
-            const bank = (paymentMethod === 'transfer' && bankSelector) ? bankSelector.value : null;
+            // Reset payment method ke QRIS
+            document.querySelector('input[name="modal_payment_method"][value="qris"]').checked = true;
+            updateModalPayment();
 
-            // Kirim data ke API
-            const checkoutData = {
-                nama: name.value.trim(),
-                telepon: phone.value.trim(),
-                alamat: address.value.trim(),
-                metode_bayar: paymentMethod,
-                bank: bank,
-                items: cart
-            };
-
-            fetch('api/checkout.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(checkoutData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Berhasil! Tampilkan modal sukses
-                    document.getElementById('success-modal').classList.add('show');
-                } else {
-                    alert('Gagal menyimpan pesanan: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Terjadi kesalahan jaringan. Coba lagi.');
-            })
-            .finally(() => {
-                btnConfirm.disabled = false;
-                btnConfirm.textContent = 'Bayar Sekarang';
-            });
+            // Tampilkan payment popup (belum save ke DB)
+            document.getElementById('payment-modal').classList.add('show');
         });
 
-        function updatePaymentDetails() {
-            const method = document.querySelector('input[name="payment_method"]:checked').value;
-            document.querySelectorAll('.payment-details-box').forEach(el => el.classList.remove('active'));
-            document.getElementById('details-' + method).classList.add('active');
-            
-            if(method === 'qris') {
-                document.querySelector('.qris-total').textContent = `Rp ${total.toLocaleString('id-ID')}`;
+        // ═══════════════════════════════════════════
+        // STEP 2: Payment Modal — Pilih Metode & Konfirmasi
+        // ═══════════════════════════════════════════
+
+        // Klik area luar popup → tutup popup (tetap di halaman checkout)
+        document.getElementById('payment-modal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                document.getElementById('payment-modal').classList.remove('show');
             }
+        });
+
+        function updateModalPayment() {
+            const method = document.querySelector('input[name="modal_payment_method"]:checked').value;
+            document.querySelectorAll('#payment-modal .payment-details-box').forEach(el => el.classList.remove('active'));
+            document.getElementById('modal-details-' + method).classList.add('active');
         }
 
-        function updateBankDetails() {
-            const bank = document.getElementById('bank-selector').value;
-            document.getElementById('bank-name').textContent = bank;
+        function updateModalBank() {
+            const bank = document.getElementById('modal-bank-selector').value;
+            document.getElementById('modal-bank-name').textContent = bank;
             const vaMap = {
                 'BCA': '8290 1234 5678',
                 'Mandiri': '8950 8765 4321',
                 'BRI': '8881 9999 0000'
             };
-            document.getElementById('va-number').textContent = vaMap[bank];
+            document.getElementById('modal-va-number').textContent = vaMap[bank];
         }
 
-        function copyVA() {
-            const va = document.getElementById('va-number').textContent;
+        function copyModalVA() {
+            const va = document.getElementById('modal-va-number').textContent;
             navigator.clipboard.writeText(va.replace(/\s/g, ''));
             
-            const btn = document.querySelector('.copy-btn');
+            const btn = document.querySelector('#payment-modal .copy-btn');
             const originalText = btn.innerHTML;
             btn.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px; margin-right: 6px;">check</span>Tersalin!`;
             btn.style.background = '#d1fae5';
@@ -850,12 +838,62 @@
             }, 2000);
         }
 
+        // ═══════════════════════════════════════════
+        // STEP 3: Konfirmasi Pembayaran → BARU SIMPAN ke DB → Success
+        // ═══════════════════════════════════════════
+        document.getElementById('btn-confirm-payment').addEventListener('click', () => {
+            const method = document.querySelector('input[name="modal_payment_method"]:checked').value;
+            const bankSelector = document.getElementById('modal-bank-selector');
+            const bank = (method === 'transfer' && bankSelector) ? bankSelector.value : null;
+
+            const btnPay = document.getElementById('btn-confirm-payment');
+            btnPay.disabled = true;
+            btnPay.textContent = 'Memproses...';
+
+            // Ambil data pelanggan dari form
+            const checkoutData = {
+                nama: document.getElementById('customer-name').value.trim(),
+                telepon: document.getElementById('customer-phone').value.trim(),
+                alamat: document.getElementById('customer-address').value.trim(),
+                metode_bayar: method,
+                bank: bank,
+                items: cart
+            };
+
+            // SEKARANG baru simpan ke database
+            fetch('api/checkout.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(checkoutData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Berhasil! Tutup payment modal, tampilkan success modal
+                    document.getElementById('payment-modal').classList.remove('show');
+                    document.getElementById('success-modal').classList.add('show');
+                } else {
+                    alert('Gagal menyimpan pesanan: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan jaringan. Coba lagi.');
+            })
+            .finally(() => {
+                btnPay.disabled = false;
+                btnPay.textContent = 'Konfirmasi Pembayaran';
+            });
+        });
+
+        // ═══════════════════════════════════════════
+        // Success Modal — Reset & Kembali
+        // ═══════════════════════════════════════════
         function closeSuccessModal() {
             document.getElementById('success-modal').classList.remove('show');
             sessionStorage.removeItem('cart');
             cart = [];
             renderCart();
-            // Reset customer form
             document.getElementById('customer-name').value = '';
             document.getElementById('customer-phone').value = '';
             document.getElementById('customer-address').value = '';

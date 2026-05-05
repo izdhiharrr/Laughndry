@@ -334,7 +334,7 @@ if ($is_admin) {
                                                     <input type="hidden" name="update_status" value="1">
                                                     <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
                                                     <select name="new_status" onchange="this.form.submit()"
-                                                        class="text-xs font-bold px-3 py-1.5 rounded-full border-0 cursor-pointer <?= $badge ?> focus:ring-2 focus:ring-primary/20">
+                                                        class="text-xs font-bold pl-4 pr-8 py-2 rounded-full border-0 cursor-pointer min-w-[120px] <?= $badge ?> focus:ring-2 focus:ring-primary/20">
                                                         <?php foreach (['pending', 'diproses', 'dicuci', 'selesai', 'diambil'] as $s): ?>
                                                             <option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>>
                                                                 <?= ucfirst($s) ?>
