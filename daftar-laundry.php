@@ -769,8 +769,47 @@
                 return;
             }
 
-            // Tampilkan modal sukses
-            document.getElementById('success-modal').classList.add('show');
+            // Disable tombol supaya tidak double-click
+            btnConfirm.disabled = true;
+            btnConfirm.textContent = 'Memproses...';
+
+            // Ambil metode pembayaran
+            const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+            const bankSelector = document.getElementById('bank-selector');
+            const bank = (paymentMethod === 'transfer' && bankSelector) ? bankSelector.value : null;
+
+            // Kirim data ke API
+            const checkoutData = {
+                nama: name.value.trim(),
+                telepon: phone.value.trim(),
+                alamat: address.value.trim(),
+                metode_bayar: paymentMethod,
+                bank: bank,
+                items: cart
+            };
+
+            fetch('api/checkout.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(checkoutData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Berhasil! Tampilkan modal sukses
+                    document.getElementById('success-modal').classList.add('show');
+                } else {
+                    alert('Gagal menyimpan pesanan: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan jaringan. Coba lagi.');
+            })
+            .finally(() => {
+                btnConfirm.disabled = false;
+                btnConfirm.textContent = 'Bayar Sekarang';
+            });
         });
 
         function updatePaymentDetails() {

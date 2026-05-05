@@ -1,32 +1,96 @@
 <?php
 /**
  * admin.php — Halaman Admin
- * Hanya dapat diakses oleh admin (dengan mock login).
+ * Terhubung ke database laughndry_db untuk data real.
  */
 session_start();
+require_once __DIR__ . '/../config/database.php';
 
-// Mock Login Logic
+// ═══════════════════ HANDLE ACTIONS (POST) ═══════════════════
+
+// --- Login ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
-    
-    // Hardcoded credentials for demonstration
-    if ($username === 'admin' && $password === 'admin123') {
+
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    $user = $stmt->fetch();
+
+    if ($user && password_verify($password, $user['password_hash'])) {
         $_SESSION['is_admin'] = true;
+        $_SESSION['admin_name'] = $user['nama_lengkap'];
     } else {
         $login_error = "Username atau password salah!";
     }
 }
 
+// --- Logout ---
 if (isset($_GET['logout'])) {
-    unset($_SESSION['is_admin']);
+    session_destroy();
+    header("Location: admin.php");
+    exit;
+}
+
+// --- Update Status Pesanan ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
+    $order_id = $_POST['order_id'];
+    $new_status = $_POST['new_status'];
+    $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
+    $stmt->execute([$new_status, $order_id]);
+    header("Location: admin.php");
+    exit;
+}
+
+// --- Delete Pesanan ---
+if (isset($_GET['delete_order'])) {
+    $stmt = $pdo->prepare("DELETE FROM orders WHERE id = ?");
+    $stmt->execute([$_GET['delete_order']]);
+    header("Location: admin.php");
+    exit;
+}
+
+// --- Delete Pelanggan ---
+if (isset($_GET['delete_customer'])) {
+    $stmt = $pdo->prepare("DELETE FROM customers WHERE id = ?");
+    $stmt->execute([$_GET['delete_customer']]);
     header("Location: admin.php");
     exit;
 }
 
 $is_admin = isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
 
-// We no longer require header.php to avoid the navbar entirely.
+// ═══════════════════ FETCH DATA ═══════════════════
+if ($is_admin) {
+    // Fetch pesanan dengan JOIN ke customers dan order_items
+    $orders = $pdo->query("
+        SELECT 
+            o.id,
+            c.nama AS customer_nama,
+            c.id AS customer_id,
+            o.total_harga,
+            o.metode_bayar,
+            o.status,
+            o.created_at,
+            GROUP_CONCAT(oi.kategori SEPARATOR ', ') AS kategori_list,
+            GROUP_CONCAT(CONCAT(oi.nama_item, ' (x', oi.qty, ')') SEPARATOR ', ') AS item_list,
+            SUM(oi.qty) AS total_qty
+        FROM orders o
+        JOIN customers c ON o.customer_id = c.id
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        GROUP BY o.id
+        ORDER BY o.created_at DESC
+    ")->fetchAll();
+
+    // Fetch pelanggan
+    $customers = $pdo->query("SELECT * FROM customers ORDER BY id ASC")->fetchAll();
+
+    // Stats
+    $total_orders = count($orders);
+    $total_customers = count($customers);
+    $total_revenue = $pdo->query("SELECT COALESCE(SUM(total_harga), 0) FROM orders")->fetchColumn();
+    $pending_orders = $pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -157,14 +221,54 @@ $is_admin = isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
                 <div>
                     <span class="text-secondary-container font-black tracking-[0.2em] text-sm mb-4 block">DASHBOARD</span>
                     <h1 class="text-3xl sm:text-4xl font-black text-primary">Admin Panel</h1>
-                    <p class="text-on-surface-variant mt-2 max-w-xl">Kelola pesanan pelanggan dan data profil pelanggan Laughndry.</p>
+                    <p class="text-on-surface-variant mt-2 max-w-xl">Selamat datang, <b><?= htmlspecialchars($_SESSION['admin_name'] ?? 'Admin') ?></b>. Kelola pesanan dan data pelanggan Laughndry.</p>
                 </div>
                 <a href="?logout=true" class="inline-flex items-center justify-center gap-2 bg-error-container text-on-error-container px-6 py-3 rounded-full font-bold hover:bg-error hover:text-on-error transition-colors">
                     <span class="material-symbols-outlined text-xl">logout</span> Logout
                 </a>
             </div>
 
-            <!-- PESANAN TABLE -->
+            <!-- ═══════════ STAT CARDS ═══════════ -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
+                <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary text-xl">receipt_long</span>
+                        </div>
+                        <span class="text-sm text-on-surface-variant font-medium">Total Pesanan</span>
+                    </div>
+                    <p class="text-2xl font-black text-primary"><?= $total_orders ?></p>
+                </div>
+                <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 bg-secondary-fixed rounded-full flex items-center justify-center">
+                            <span class="material-symbols-outlined text-secondary text-xl">pending_actions</span>
+                        </div>
+                        <span class="text-sm text-on-surface-variant font-medium">Pending</span>
+                    </div>
+                    <p class="text-2xl font-black text-secondary"><?= $pending_orders ?></p>
+                </div>
+                <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary text-xl">group</span>
+                        </div>
+                        <span class="text-sm text-on-surface-variant font-medium">Pelanggan</span>
+                    </div>
+                    <p class="text-2xl font-black text-primary"><?= $total_customers ?></p>
+                </div>
+                <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 bg-secondary-fixed rounded-full flex items-center justify-center">
+                            <span class="material-symbols-outlined text-secondary text-xl">payments</span>
+                        </div>
+                        <span class="text-sm text-on-surface-variant font-medium">Total Revenue</span>
+                    </div>
+                    <p class="text-2xl font-black text-secondary">Rp <?= number_format($total_revenue, 0, ',', '.') ?></p>
+                </div>
+            </div>
+
+            <!-- ═══════════ PESANAN TABLE ═══════════ -->
             <div class="mb-16">
                 <div class="text-center mb-8">
                     <h2 class="text-2xl sm:text-3xl font-black text-primary mb-2">Pesanan</h2>
@@ -172,60 +276,95 @@ $is_admin = isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
                 </div>
                 
                 <div class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
-                    <!-- Table controls -->
-                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                        <div class="flex items-center gap-2 text-sm text-on-surface-variant font-medium">
-                            Show 
-                            <select class="bg-surface border-2 border-outline-variant/30 rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:border-primary transition-colors cursor-pointer">
-                                <option>10</option>
-                                <option>25</option>
-                                <option>50</option>
-                            </select> 
-                            entries
-                        </div>
-                        <div class="flex items-center gap-2 text-sm font-medium text-on-surface-variant w-full sm:w-auto">
-                            Search: 
-                            <input type="text" class="w-full sm:w-auto bg-surface border-2 border-outline-variant/30 rounded-lg px-4 py-1.5 focus:outline-none focus:border-primary transition-colors">
-                        </div>
-                    </div>
-
                     <!-- Table -->
                     <div class="overflow-x-auto rounded-xl border border-outline-variant/20">
                         <table class="w-full text-left border-collapse min-w-[900px]">
                             <thead>
                                 <tr class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm">
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors">ID User <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors">Jenis Layanan <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors">List Satuan <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors">Massa Barang <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors">Jumlah Barang <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors">Harga Total <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors">Status Pemesanan <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors text-center">Action <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
+                                    <th class="p-4 font-bold whitespace-nowrap">ID</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Pelanggan</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Jenis Layanan</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Detail Item</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Qty</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Harga Total</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Metode Bayar</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Status</th>
+                                    <th class="p-4 font-bold whitespace-nowrap text-center">Action</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td colspan="8" class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">
-                                        No data available in table
-                                    </td>
-                                </tr>
+                            <tbody class="divide-y divide-outline-variant/20">
+                                <?php if (empty($orders)): ?>
+                                    <tr>
+                                        <td colspan="9" class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">
+                                            Belum ada pesanan.
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($orders as $order): ?>
+                                        <?php
+                                            // Status badge colors
+                                            $status_colors = [
+                                                'pending'   => 'bg-yellow-100 text-yellow-800',
+                                                'diproses'  => 'bg-blue-100 text-blue-800',
+                                                'dicuci'    => 'bg-cyan-100 text-cyan-800',
+                                                'selesai'   => 'bg-green-100 text-green-800',
+                                                'diambil'   => 'bg-gray-100 text-gray-600',
+                                            ];
+                                            $badge = $status_colors[$order['status']] ?? 'bg-gray-100 text-gray-600';
+
+                                            // Metode bayar badge
+                                            $metode_icons = [
+                                                'qris'     => '🔲 QRIS',
+                                                'transfer' => '🏦 Transfer',
+                                                'tunai'    => '💵 Tunai',
+                                            ];
+                                            $metode_label = $metode_icons[$order['metode_bayar']] ?? $order['metode_bayar'];
+                                        ?>
+                                        <tr class="hover:bg-surface-container-low transition-colors">
+                                            <td class="p-4 font-bold text-primary">#<?= $order['id'] ?></td>
+                                            <td class="p-4 font-medium text-primary"><?= htmlspecialchars($order['customer_nama']) ?></td>
+                                            <td class="p-4 text-on-surface-variant text-sm"><?= htmlspecialchars($order['kategori_list'] ?? '-') ?></td>
+                                            <td class="p-4 text-on-surface-variant text-sm max-w-[200px]"><?= htmlspecialchars($order['item_list'] ?? '-') ?></td>
+                                            <td class="p-4 text-on-surface-variant font-medium"><?= $order['total_qty'] ?? 0 ?></td>
+                                            <td class="p-4 font-bold text-secondary">Rp <?= number_format($order['total_harga'], 0, ',', '.') ?></td>
+                                            <td class="p-4 text-sm"><?= $metode_label ?></td>
+                                            <td class="p-4">
+                                                <!-- Status Update Form -->
+                                                <form method="POST" action="admin.php" class="inline">
+                                                    <input type="hidden" name="update_status" value="1">
+                                                    <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+                                                    <select name="new_status" onchange="this.form.submit()"
+                                                        class="text-xs font-bold px-3 py-1.5 rounded-full border-0 cursor-pointer <?= $badge ?> focus:ring-2 focus:ring-primary/20">
+                                                        <?php foreach (['pending', 'diproses', 'dicuci', 'selesai', 'diambil'] as $s): ?>
+                                                            <option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>>
+                                                                <?= ucfirst($s) ?>
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </form>
+                                            </td>
+                                            <td class="p-4 text-center">
+                                                <a href="?delete_order=<?= $order['id'] ?>"
+                                                    onclick="return confirm('Yakin hapus pesanan #<?= $order['id'] ?>?')"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors">
+                                                    <span class="material-symbols-outlined text-base">delete</span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
 
-                    <!-- Pagination -->
+                    <!-- Info -->
                     <div class="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4 text-sm text-on-surface-variant">
-                        <div>Showing 0 to 0 of 0 entries</div>
-                        <div class="flex gap-1">
-                            <button class="px-4 py-2 rounded-lg border-2 border-outline-variant/30 text-outline-variant cursor-not-allowed bg-surface" disabled>Previous</button>
-                            <button class="px-4 py-2 rounded-lg border-2 border-outline-variant/30 text-outline-variant cursor-not-allowed bg-surface" disabled>Next</button>
-                        </div>
+                        <div>Menampilkan <?= count($orders) ?> pesanan</div>
                     </div>
                 </div>
             </div>
 
-            <!-- PROFIL PELANGGAN TABLE -->
+            <!-- ═══════════ PROFIL PELANGGAN TABLE ═══════════ -->
             <div>
                 <div class="text-center mb-8">
                     <h2 class="text-2xl sm:text-3xl font-black text-primary mb-2">Profil Pelanggan</h2>
@@ -233,61 +372,51 @@ $is_admin = isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
                 </div>
                 
                 <div class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
-                    <!-- Table controls -->
-                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                        <div class="flex items-center gap-2 text-sm text-on-surface-variant font-medium">
-                            Show 
-                            <select class="bg-surface border-2 border-outline-variant/30 rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:border-primary transition-colors cursor-pointer">
-                                <option>10</option>
-                                <option>25</option>
-                                <option>50</option>
-                            </select> 
-                            entries
-                        </div>
-                        <div class="flex items-center gap-2 text-sm font-medium text-on-surface-variant w-full sm:w-auto">
-                            Search: 
-                            <input type="text" class="w-full sm:w-auto bg-surface border-2 border-outline-variant/30 rounded-lg px-4 py-1.5 focus:outline-none focus:border-primary transition-colors">
-                        </div>
-                    </div>
-
                     <!-- Table -->
                     <div class="overflow-x-auto rounded-xl border border-outline-variant/20">
                         <table class="w-full text-left border-collapse min-w-[800px]">
                             <thead>
                                 <tr class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm">
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors w-24">ID User <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors">Nama <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors">Alamat <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
-                                    <th class="p-4 font-bold whitespace-nowrap cursor-pointer hover:bg-surface-container-high transition-colors">Nomor Telepon <span class="material-symbols-outlined text-[16px] align-text-bottom opacity-40">swap_vert</span></th>
-                                    <th class="p-4 font-bold text-center w-24">Edit</th>
+                                    <th class="p-4 font-bold whitespace-nowrap w-24">ID</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Nama</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Alamat</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Nomor Telepon</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Terdaftar</th>
                                     <th class="p-4 font-bold text-center w-24">Delete</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-outline-variant/20">
-                                <tr class="hover:bg-surface-container-low transition-colors group">
-                                    <td class="p-4 text-on-surface-variant font-medium">1</td>
-                                    <td class="p-4 font-bold text-primary">Administrator</td>
-                                    <td class="p-4 text-on-surface-variant">Jl. Serpong Raya No. 1, Tangerang Selatan</td>
-                                    <td class="p-4 text-on-surface-variant">081242133333</td>
-                                    <td class="p-4 text-center">
-                                        <button class="px-4 py-2 text-sm font-bold bg-secondary-container text-on-secondary-container rounded-lg hover:bg-secondary hover:text-on-secondary transition-colors">Edit</button>
-                                    </td>
-                                    <td class="p-4 text-center">
-                                        <button class="px-4 py-2 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors">Delete</button>
-                                    </td>
-                                </tr>
+                                <?php if (empty($customers)): ?>
+                                    <tr>
+                                        <td colspan="6" class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">
+                                            Belum ada pelanggan terdaftar.
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($customers as $cust): ?>
+                                        <tr class="hover:bg-surface-container-low transition-colors group">
+                                            <td class="p-4 text-on-surface-variant font-medium"><?= $cust['id'] ?></td>
+                                            <td class="p-4 font-bold text-primary"><?= htmlspecialchars($cust['nama']) ?></td>
+                                            <td class="p-4 text-on-surface-variant"><?= htmlspecialchars($cust['alamat']) ?></td>
+                                            <td class="p-4 text-on-surface-variant"><?= htmlspecialchars($cust['telepon']) ?></td>
+                                            <td class="p-4 text-on-surface-variant text-sm"><?= date('d M Y', strtotime($cust['created_at'])) ?></td>
+                                            <td class="p-4 text-center">
+                                                <a href="?delete_customer=<?= $cust['id'] ?>"
+                                                    onclick="return confirm('Yakin hapus pelanggan <?= htmlspecialchars($cust['nama']) ?>? Semua pesanannya juga akan terhapus.')"
+                                                    class="px-4 py-2 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors inline-flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-base">delete</span> Delete
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
 
-                    <!-- Pagination -->
+                    <!-- Info -->
                     <div class="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4 text-sm text-on-surface-variant">
-                        <div>Showing 1 to 1 of 1 entries</div>
-                        <div class="flex gap-2">
-                            <button class="px-4 py-2 rounded-lg border-2 border-outline-variant/30 text-on-surface-variant hover:bg-surface-container transition-colors">Previous</button>
-                            <button class="px-4 py-2 rounded-lg bg-primary text-on-primary font-bold shadow-md shadow-primary/20">1</button>
-                            <button class="px-4 py-2 rounded-lg border-2 border-outline-variant/30 text-on-surface-variant hover:bg-surface-container transition-colors">Next</button>
-                        </div>
+                        <div>Menampilkan <?= count($customers) ?> pelanggan</div>
                     </div>
                 </div>
             </div>
