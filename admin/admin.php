@@ -277,10 +277,10 @@ if ($is_admin) {
                 
                 <div class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
                     <!-- Table -->
-                    <div class="overflow-x-auto rounded-xl border border-outline-variant/20">
+                    <div class="overflow-x-auto overflow-y-auto max-h-[480px] rounded-xl border border-outline-variant/20 relative">
                         <table class="w-full text-left border-collapse min-w-[900px]">
-                            <thead>
-                                <tr class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm">
+                            <thead class="sticky top-0 z-10">
+                                <tr class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm shadow-sm">
                                     <th class="p-4 font-bold whitespace-nowrap">ID</th>
                                     <th class="p-4 font-bold whitespace-nowrap">Pelanggan</th>
                                     <th class="p-4 font-bold whitespace-nowrap">Jenis Layanan</th>
@@ -373,10 +373,10 @@ if ($is_admin) {
                 
                 <div class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
                     <!-- Table -->
-                    <div class="overflow-x-auto rounded-xl border border-outline-variant/20">
+                    <div class="overflow-x-auto overflow-y-auto max-h-[480px] rounded-xl border border-outline-variant/20 relative">
                         <table class="w-full text-left border-collapse min-w-[800px]">
-                            <thead>
-                                <tr class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm">
+                            <thead class="sticky top-0 z-10">
+                                <tr class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm shadow-sm">
                                     <th class="p-4 font-bold whitespace-nowrap w-24">ID</th>
                                     <th class="p-4 font-bold whitespace-nowrap">Nama</th>
                                     <th class="p-4 font-bold whitespace-nowrap">Alamat</th>

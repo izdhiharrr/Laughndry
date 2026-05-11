@@ -33,9 +33,9 @@ require_once __DIR__ . '/header.php';
 <header
     class="relative overflow-hidden pt-20 sm:pt-16 md:pt-12 pb-16 sm:pb-24 px-4 sm:px-8 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
     <div class="z-10">
-        <br/><span
+        <span
             class="inline-block px-4 py-1.5 rounded-full bg-primary-fixed text-primary text-xs font-black tracking-widest mb-6 hero-text-animate">
-            #1 LAUNDRY DI SERPONG
+            #LAUNDRY TERBAIK
         </span>
 
         <h1
@@ -116,16 +116,13 @@ require_once __DIR__ . '/header.php';
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 stagger-children">
             <?php foreach ($services as $svc): ?>
                 <a href="harga.php#<?= isset($svc['id']) ? $svc['id'] : '' ?>"
-                    class="block bg-surface-container-lowest p-8 sm:p-10 rounded-3xl card-hover stagger-item cursor-pointer group relative overflow-hidden flex flex-col h-full">
+                    class="block bg-surface-container-lowest p-8 sm:p-10 rounded-3xl card-hover stagger-item cursor-pointer">
                     <div
-                        class="w-16 h-16 bg-secondary-fixed flex items-center justify-center rounded-full mb-8 icon-bounce relative z-10">
+                        class="w-16 h-16 bg-secondary-fixed flex items-center justify-center rounded-full mb-8 icon-bounce">
                         <span class="material-symbols-outlined text-secondary text-3xl"><?= $svc['icon'] ?></span>
                     </div>
                     <h3 class="text-xl font-bold text-primary mb-4"><?= $svc['title'] ?></h3>
-                    <p class="text-on-surface-variant leading-relaxed flex-grow"><?= $svc['desc'] ?></p>
-                    <div class="flex justify-end mt-4">
-                        <span class="material-symbols-outlined text-secondary-container opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">arrow_forward</span>
-                    </div>
+                    <p class="text-on-surface-variant leading-relaxed"><?= $svc['desc'] ?></p>
                 </a>
             <?php endforeach; ?>
         </div>

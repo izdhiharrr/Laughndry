@@ -193,14 +193,17 @@ $total_steps++;
 try {
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `orders` (
-            `id`            INT AUTO_INCREMENT PRIMARY KEY,
-            `customer_id`   INT NOT NULL,
-            `total_harga`   INT NOT NULL DEFAULT 0,
-            `metode_bayar`  ENUM('qris', 'transfer', 'tunai') NOT NULL DEFAULT 'tunai',
-            `bank`          VARCHAR(20) DEFAULT NULL,
-            `status`        ENUM('pending', 'diproses', 'dicuci', 'selesai', 'diambil') DEFAULT 'pending',
-            `created_at`    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            `updated_at`    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            `id`                INT AUTO_INCREMENT PRIMARY KEY,
+            `customer_id`       INT NOT NULL,
+            `total_harga`       INT NOT NULL DEFAULT 0,
+            `metode_bayar`      VARCHAR(30) NOT NULL DEFAULT 'tunai',
+            `bank`              VARCHAR(20) DEFAULT NULL,
+            `status`            ENUM('pending', 'diproses', 'dicuci', 'selesai', 'diambil') DEFAULT 'pending',
+            `snap_token`        VARCHAR(255) DEFAULT NULL,
+            `midtrans_order_id` VARCHAR(100) DEFAULT NULL,
+            `payment_status`    VARCHAR(30) DEFAULT NULL,
+            `created_at`        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            `updated_at`        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB
     ");

@@ -1,24 +1,21 @@
 <?php
 /**
- * api/checkout.php — API Endpoint untuk menyimpan pesanan ke database
+ * api/checkout.php — Simpan pesanan ke database SETELAH pembayaran berhasil
  * 
- * Menerima data JSON via POST dari halaman daftar-laundry.php
- * dan menyimpan ke tabel customers, orders, dan order_items.
+ * Dipanggil HANYA dari Snap onSuccess callback.
+ * Data order baru masuk ke DB setelah pembayaran dikonfirmasi.
  */
 
 header('Content-Type: application/json');
 
-// Hanya terima POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);
     exit;
 }
 
-// Koneksi database
 require_once __DIR__ . '/../config/database.php';
 
-// Ambil data JSON dari request body
 $input = json_decode(file_get_contents('php://input'), true);
 
 if (!$input) {
@@ -27,13 +24,12 @@ if (!$input) {
     exit;
 }
 
-// Validasi field wajib
-$nama    = trim($input['nama'] ?? '');
-$telepon = trim($input['telepon'] ?? '');
-$alamat  = trim($input['alamat'] ?? '');
-$metode  = $input['metode_bayar'] ?? 'tunai';
-$bank    = $input['bank'] ?? null;
-$items   = $input['items'] ?? [];
+$nama              = trim($input['nama'] ?? '');
+$telepon           = trim($input['telepon'] ?? '');
+$alamat            = trim($input['alamat'] ?? '');
+$items             = $input['items'] ?? [];
+$payment_type      = $input['payment_type'] ?? 'midtrans';
+$midtrans_order_id = $input['midtrans_order_id'] ?? null;
 
 if (empty($nama) || empty($telepon) || empty($alamat)) {
     http_response_code(400);
@@ -47,20 +43,11 @@ if (empty($items)) {
     exit;
 }
 
-// Validasi metode bayar
-$valid_methods = ['qris', 'transfer', 'tunai'];
-if (!in_array($metode, $valid_methods)) {
-    $metode = 'tunai';
-}
-
 try {
-    // Mulai transaction — semua harus berhasil atau tidak sama sekali
     $pdo->beginTransaction();
 
     // ═══════════════════════════════════════════
-    // 1. Cek apakah pelanggan sudah ada (by telepon)
-    //    Jika sudah ada, update nama & alamat
-    //    Jika belum, buat baru
+    // 1. Cek / buat pelanggan
     // ═══════════════════════════════════════════
     $stmt = $pdo->prepare("SELECT id FROM customers WHERE telepon = ?");
     $stmt->execute([$telepon]);
@@ -68,7 +55,6 @@ try {
 
     if ($existing) {
         $customer_id = $existing['id'];
-        // Update data pelanggan jika ada perubahan
         $stmt = $pdo->prepare("UPDATE customers SET nama = ?, alamat = ? WHERE id = ?");
         $stmt->execute([$nama, $alamat, $customer_id]);
     } else {
@@ -78,7 +64,7 @@ try {
     }
 
     // ═══════════════════════════════════════════
-    // 2. Hitung total harga dari items
+    // 2. Hitung total
     // ═══════════════════════════════════════════
     $total_harga = 0;
     foreach ($items as $item) {
@@ -87,18 +73,20 @@ try {
         $total_harga += $harga * $qty;
     }
 
-    // ═══════════════════════════════════════════
-    // 3. Simpan order
-    // ═══════════════════════════════════════════
+    // Tentukan status berdasarkan metode bayar
+    $is_tunai       = $input['is_tunai'] ?? false;
+    $order_status   = $is_tunai ? 'pending' : 'diproses';
+    $pay_status     = $is_tunai ? null : 'settlement';
+
     $stmt = $pdo->prepare("
-        INSERT INTO orders (customer_id, total_harga, metode_bayar, bank, status) 
-        VALUES (?, ?, ?, ?, 'pending')
+        INSERT INTO orders (customer_id, total_harga, metode_bayar, status, midtrans_order_id, payment_status) 
+        VALUES (?, ?, ?, ?, ?, ?)
     ");
-    $stmt->execute([$customer_id, $total_harga, $metode, $bank]);
+    $stmt->execute([$customer_id, $total_harga, $payment_type, $order_status, $midtrans_order_id, $pay_status]);
     $order_id = $pdo->lastInsertId();
 
     // ═══════════════════════════════════════════
-    // 4. Simpan setiap item pesanan
+    // 4. Simpan order items
     // ═══════════════════════════════════════════
     $stmt = $pdo->prepare("
         INSERT INTO order_items (order_id, kategori, nama_item, harga, qty, subtotal) 
@@ -111,25 +99,22 @@ try {
         $harga     = intval(preg_replace('/[^0-9]/', '', $item['price'] ?? '0'));
         $qty       = intval($item['qty'] ?? 1);
         $subtotal  = $harga * $qty;
-
         $stmt->execute([$order_id, $kategori, $nama_item, $harga, $qty, $subtotal]);
     }
 
-    // Commit semua perubahan
     $pdo->commit();
 
-    // Berhasil!
     echo json_encode([
         'success'     => true,
         'message'     => 'Pesanan berhasil disimpan!',
         'order_id'    => $order_id,
-        'customer_id' => $customer_id,
         'total_harga' => $total_harga,
     ]);
 
 } catch (Exception $e) {
-    // Gagal — rollback semua perubahan
-    $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     http_response_code(500);
     echo json_encode([
         'success' => false,

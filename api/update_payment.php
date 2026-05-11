@@ -1,8 +1,13 @@
 <?php
 /**
- * api/update_payment.php — Update metode pembayaran setelah user memilih
+ * api/update_payment.php — Update status pembayaran setelah Midtrans Snap callback
  * 
- * Dipanggil setelah order disimpan, saat user memilih metode bayar di popup.
+ * Dipanggil dari frontend saat Snap popup mengembalikan hasil:
+ * - onSuccess → status = 'diproses', payment_status = 'settlement'
+ * - onPending → status = 'pending', payment_status = 'pending'
+ * 
+ * Ini adalah FALLBACK untuk localhost yang tidak bisa menerima webhook.
+ * Di production, webhook tetap menjadi sumber utama update status.
  */
 
 header('Content-Type: application/json');
@@ -23,28 +28,39 @@ if (!$input || empty($input['order_id'])) {
     exit;
 }
 
-$order_id = intval($input['order_id']);
-$metode   = $input['metode_bayar'] ?? 'tunai';
-$bank     = $input['bank'] ?? null;
+$order_id       = intval($input['order_id']);
+$payment_status = $input['payment_status'] ?? 'pending'; // settlement, pending, error
+$payment_type   = $input['payment_type'] ?? 'midtrans';
 
-// Validasi metode
-$valid_methods = ['qris', 'transfer', 'tunai'];
-if (!in_array($metode, $valid_methods)) {
-    $metode = 'tunai';
-}
+// Map Midtrans payment status → order status
+$status_map = [
+    'settlement' => 'diproses',
+    'capture'    => 'diproses',
+    'pending'    => 'pending',
+    'deny'       => 'pending',
+    'cancel'     => 'pending',
+    'expire'     => 'pending',
+];
+
+$new_status = $status_map[$payment_status] ?? 'pending';
 
 try {
-    $stmt = $pdo->prepare("UPDATE orders SET metode_bayar = ?, bank = ? WHERE id = ?");
-    $stmt->execute([$metode, $bank, $order_id]);
+    $stmt = $pdo->prepare("
+        UPDATE orders 
+        SET status = ?, metode_bayar = ?, payment_status = ?, updated_at = NOW() 
+        WHERE id = ?
+    ");
+    $stmt->execute([$new_status, $payment_type, $payment_status, $order_id]);
 
     echo json_encode([
         'success' => true,
-        'message' => 'Metode pembayaran berhasil diupdate',
+        'message' => 'Status pembayaran berhasil diupdate',
+        'status'  => $new_status,
     ]);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Gagal update metode bayar: ' . $e->getMessage(),
+        'message' => 'Gagal update status: ' . $e->getMessage(),
     ]);
 }
