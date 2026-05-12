@@ -107,7 +107,7 @@ require_once __DIR__ . '/header.php';
 <section class="py-12 bg-surface">
     <div class="max-w-7xl mx-auto px-4 sm:px-8 space-y-12">
         <?php foreach ($full_price_list as $category): ?>
-            <div class="reveal" id="<?= isset($category['id']) ? $category['id'] : '' ?>" style="scroll-margin-top: 120px;">
+            <div class="reveal" id="<?= isset($category['id']) ? $category['id'] : '' ?>" style="scroll-margin-top: 160px;">
                 <!-- Category Title -->
                 <div class="border-l-4 border-secondary-container pl-4 mb-6">
                     <h2 class="text-xl sm:text-2xl font-bold text-primary"><?= $category['category'] ?></h2>

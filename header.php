@@ -100,12 +100,12 @@ $order_href = $is_harga ? 'index.php#layanan' : '#layanan';
 <body class="bg-background text-on-surface antialiased">
 
     <!-- ═══════════════════════════ NAVBAR ═══════════════════════════ -->
-    <nav id="main-nav" class="bg-slate-50/80 backdrop-blur-md fixed w-full top-0 z-50 transition-all duration-300">
-        <div class="flex justify-between items-center w-full px-4 sm:px-8 py-4 max-w-7xl mx-auto">
+    <nav id="main-nav" class="bg-[#035D51] backdrop-blur-md fixed w-full top-0 z-50 transition-all duration-300">
+        <div class="flex justify-between items-center w-full px-4 sm:px-8 py-2 sm:py-3 max-w-7xl mx-auto">
 
             <!-- Logo -->
             <a href="<?= $logo_href ?>" class="text-xl sm:text-2xl font-black text-emerald-900 flex items-center gap-2">
-                <img src="assets/gambar/LOGO.png" alt="Laughndry Logo" class="h-20 w-auto" />
+                <img src="assets/gambar/LOGO.png" alt="Laughndry Logo" class="h-12 sm:h-14 w-auto" />
             </a>
 
             <!-- Desktop links -->
@@ -117,12 +117,11 @@ $order_href = $is_harga ? 'index.php#layanan' : '#layanan';
                     }
                     $is_active = ($is_harga && $link['label'] === 'Harga') || (!$is_harga && $link['active']);
                     ?>
-                    <a href="<?= $href ?>" id="<?= $link['id'] ?>"
-                        class="nav-link-item hover:scale-105 transition-all duration-300 relative pb-1
-                        <?= $is_active ? 'text-emerald-900 font-bold active-link' : 'text-emerald-800/70 hover:text-emerald-900' ?>">
+                    <a href="<?= $href ?>" id="<?= $link['id'] ?>" class="nav-link-item hover:scale-105 transition-all duration-300 relative pb-1
+                        <?= $is_active ? 'text-white font-bold active-link' : 'text-white/70 hover:text-white' ?>">
                         <?= $link['label'] ?>
                         <span
-                            class="nav-indicator absolute left-0 bottom-0 w-full h-[2px] bg-secondary-container transition-transform origin-left duration-300 <?= $is_active ? 'scale-x-100' : 'scale-x-0' ?>"></span>
+                            class="nav-indicator absolute left-0 bottom-0 w-full h-[2px] bg-white transition-transform origin-left duration-300 <?= $is_active ? 'scale-x-100' : 'scale-x-0' ?>"></span>
                     </a>
                 <?php endforeach; ?>
             </div>
@@ -130,24 +129,24 @@ $order_href = $is_harga ? 'index.php#layanan' : '#layanan';
             <!-- CTA + hamburger -->
             <div class="flex items-center gap-3">
                 <a href="<?= $order_href ?>"
-                    class="hidden sm:inline-block bg-primary text-on-primary px-6 py-2.5 rounded-full font-bold hover:scale-105 active:scale-95 transition-all">
+                    class="hidden sm:inline-block bg-white text-[#035D51] px-6 py-2.5 rounded-full font-bold hover:scale-105 active:scale-95 transition-all">
                     Order Sekarang
                 </a>
                 <!-- Mobile hamburger -->
                 <button id="mobile-menu-btn" class="md:hidden flex flex-col gap-[5px] p-2 group" aria-label="Menu">
                     <span
-                        class="block w-6 h-[2.5px] bg-primary rounded transition-all duration-300 origin-center group-[.open]:rotate-45 group-[.open]:translate-y-[7.5px]"></span>
+                        class="block w-6 h-[2.5px] bg-white rounded transition-all duration-300 origin-center group-[.open]:rotate-45 group-[.open]:translate-y-[7.5px]"></span>
                     <span
-                        class="block w-6 h-[2.5px] bg-primary rounded transition-all duration-300 group-[.open]:opacity-0"></span>
+                        class="block w-6 h-[2.5px] bg-white rounded transition-all duration-300 group-[.open]:opacity-0"></span>
                     <span
-                        class="block w-6 h-[2.5px] bg-primary rounded transition-all duration-300 origin-center group-[.open]:-rotate-45 group-[.open]:-translate-y-[7.5px]"></span>
+                        class="block w-6 h-[2.5px] bg-white rounded transition-all duration-300 origin-center group-[.open]:-rotate-45 group-[.open]:-translate-y-[7.5px]"></span>
                 </button>
             </div>
         </div>
 
         <!-- Mobile drawer -->
         <div id="mobile-menu"
-            class="md:hidden max-h-0 overflow-hidden transition-all duration-500 ease-in-out bg-white/95 backdrop-blur-lg">
+            class="md:hidden max-h-0 overflow-hidden transition-all duration-500 ease-in-out bg-[#035D51]/95 backdrop-blur-lg">
             <div class="flex flex-col gap-2 px-6 py-4">
                 <?php foreach ($nav_links as $link):
                     $href = $link['href'];
@@ -157,17 +156,17 @@ $order_href = $is_harga ? 'index.php#layanan' : '#layanan';
                     $is_active = ($is_harga && $link['label'] === 'Harga') || (!$is_harga && $link['active']);
                     ?>
                     <a href="<?= $href ?>" class="mobile-nav-link py-3 px-4 rounded-xl text-lg font-semibold
-                          <?= $is_active ? 'text-primary bg-primary-fixed/30' : 'text-on-surface-variant hover:bg-surface-container' ?>
+                          <?= $is_active ? 'text-white bg-white/20' : 'text-white/70 hover:bg-white/10 hover:text-white' ?>
                           transition-colors duration-200">
                         <?= $link['label'] ?>
                     </a>
                 <?php endforeach; ?>
                 <a href="<?= $order_href ?>"
-                    class="mt-2 text-center bg-primary text-on-primary px-6 py-3 rounded-full font-bold">Order
+                    class="mt-2 text-center bg-white text-[#035D51] px-6 py-3 rounded-full font-bold">Order
                     Sekarang</a>
             </div>
         </div>
     </nav>
 
     <!-- Spacer to compensate for fixed nav -->
-    <div class="h-[80px]"></div>
+    <div class="h-[70px] sm:h-[80px]"></div>

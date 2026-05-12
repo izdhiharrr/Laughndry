@@ -144,6 +144,23 @@ body {
     box-shadow: 0 12px 28px rgba(0, 67, 58, 0.08);
 }
 
+/* Hover arrow at bottom-right */
+.service-arrow {
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    color: #035d51;
+    font-size: 1.5rem;
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.service-card:hover .service-arrow {
+    opacity: 1;
+    transform: translateX(0);
+}
+
 /* Icon bounce on card hover */
 .card-hover:hover .icon-bounce,
 .service-card:hover .icon-bounce {

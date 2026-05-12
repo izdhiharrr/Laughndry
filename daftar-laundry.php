@@ -245,6 +245,7 @@
             background-color: white;
             box-sizing: border-box;
         }
+
         /* Customer Info Form */
         .customer-info-section {
             background: #f9fafb;
@@ -253,6 +254,7 @@
             margin-bottom: 24px;
             border: 1px solid #e5e7eb;
         }
+
         .customer-info-title {
             display: flex;
             align-items: center;
@@ -262,10 +264,12 @@
             margin-bottom: 16px;
             font-size: 1rem;
         }
+
         .customer-info-title .material-symbols-outlined {
             color: #f59e0b;
             font-size: 22px;
         }
+
         .form-input {
             width: 100%;
             padding: 12px 14px;
@@ -278,23 +282,29 @@
             transition: border-color 0.2s, box-shadow 0.2s;
             outline: none;
         }
+
         .form-input:focus {
             border-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
         }
+
         .form-input.error {
             border-color: #ef4444;
-            box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
         }
+
         .form-input::placeholder {
             color: #9ca3af;
         }
+
         .input-group {
             margin-bottom: 14px;
         }
+
         .input-group:last-child {
             margin-bottom: 0;
         }
+
         .input-label {
             display: block;
             font-weight: 600;
@@ -302,19 +312,23 @@
             color: #4b5563;
             margin-bottom: 6px;
         }
+
         .input-error-msg {
             color: #ef4444;
             font-size: 0.8rem;
             margin-top: 4px;
             display: none;
         }
+
         .input-error-msg.show {
             display: block;
         }
+
         textarea.form-input {
             resize: vertical;
             min-height: 70px;
         }
+
         /* New Payment Gateway Styles */
         .payment-methods {
             display: grid;
@@ -322,13 +336,16 @@
             gap: 12px;
             margin-bottom: 24px;
         }
+
         .payment-method-card {
             cursor: pointer;
             position: relative;
         }
+
         .payment-method-card input {
             display: none;
         }
+
         .payment-method-card .card-content {
             border: 2px solid #e5e7eb;
             border-radius: 12px;
@@ -343,24 +360,29 @@
             height: 100%;
             box-sizing: border-box;
         }
-        .payment-method-card input:checked + .card-content {
+
+        .payment-method-card input:checked+.card-content {
             border-color: #10b981;
             background: #ecfdf5;
-            box-shadow: 0 4px 12px rgba(16,185,129,0.1);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
         }
+
         .payment-method-card .icon {
             font-size: 2.5rem;
             color: #9ca3af;
             transition: color 0.2s;
         }
-        .payment-method-card input:checked + .card-content .icon {
+
+        .payment-method-card input:checked+.card-content .icon {
             color: #10b981;
         }
+
         .payment-method-card .card-content span:last-child {
             font-weight: 600;
             color: #4b5563;
         }
-        .payment-method-card input:checked + .card-content span:last-child {
+
+        .payment-method-card input:checked+.card-content span:last-child {
             color: #065f46;
         }
 
@@ -373,13 +395,22 @@
             text-align: center;
             display: none;
         }
+
         .payment-details-box.active {
             display: block;
             animation: fadeIn 0.3s ease;
         }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .qr-placeholder {
@@ -422,6 +453,7 @@
             display: inline-flex;
             align-items: center;
         }
+
         .copy-btn:hover {
             background: #e2e8f0;
             color: #1e293b;
@@ -430,8 +462,11 @@
         /* Success Modal */
         .modal-overlay {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -441,10 +476,12 @@
             transition: opacity 0.3s ease;
             backdrop-filter: blur(4px);
         }
+
         .modal-overlay.show {
             opacity: 1;
             pointer-events: auto;
         }
+
         .success-modal {
             background: #fff;
             border-radius: 24px;
@@ -456,9 +493,11 @@
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
+
         .modal-overlay.show .success-modal {
             transform: scale(1);
         }
+
         .success-icon {
             width: 80px;
             height: 80px;
@@ -472,17 +511,20 @@
             margin: 0 auto 24px;
             box-shadow: 0 0 0 10px #ecfdf5;
         }
+
         .success-title {
             font-size: 1.5rem;
             font-weight: bold;
             color: #111827;
             margin-bottom: 12px;
         }
+
         .success-message {
             color: #6b7280;
             margin-bottom: 32px;
             line-height: 1.5;
         }
+
         .success-btn {
             background: #10b981;
             color: #fff;
@@ -494,8 +536,9 @@
             cursor: pointer;
             width: 100%;
             transition: background 0.2s;
-            box-shadow: 0 4px 12px rgba(16,185,129,0.2);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
         }
+
         .success-btn:hover {
             background: #059669;
         }
@@ -543,7 +586,8 @@
                 </div>
                 <div class="input-group">
                     <label class="input-label" for="customer-address">Alamat</label>
-                    <textarea class="form-input" id="customer-address" placeholder="Masukkan alamat lengkap Anda" rows="3"></textarea>
+                    <textarea class="form-input" id="customer-address" placeholder="Masukkan alamat lengkap Anda"
+                        rows="3"></textarea>
                     <div class="input-error-msg" id="error-address">Alamat wajib diisi</div>
                 </div>
             </div>
@@ -584,12 +628,21 @@
             </div>
             <!-- Loading indicator -->
             <div id="checkout-loading" style="display:none; text-align:center; margin-top:16px;">
-                <div style="display:inline-flex; align-items:center; gap:10px; background:#ecfdf5; padding:12px 24px; border-radius:12px;">
-                    <div style="width:20px;height:20px;border:3px solid #d1fae5;border-top-color:#10b981;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+                <div
+                    style="display:inline-flex; align-items:center; gap:10px; background:#ecfdf5; padding:12px 24px; border-radius:12px;">
+                    <div
+                        style="width:20px;height:20px;border:3px solid #d1fae5;border-top-color:#10b981;border-radius:50%;animation:spin 0.8s linear infinite;">
+                    </div>
                     <span style="color:#065f46;font-weight:600;">Memproses pembayaran...</span>
                 </div>
             </div>
-            <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+            <style>
+                @keyframes spin {
+                    to {
+                        transform: rotate(360deg)
+                    }
+                }
+            </style>
         </div>
     </div>
 
@@ -598,12 +651,13 @@
     <!-- ============ SUCCESS MODAL ============ -->
     <div class="modal-overlay" id="success-modal">
         <div class="success-modal">
-            <div class="success-icon">
-                <span class="material-symbols-outlined">check</span>
+            <div class="success-icon" id="success-icon">
+                <span class="material-symbols-outlined" id="success-icon-symbol">check</span>
             </div>
-            <div class="success-title">Pesanan Berhasil!</div>
-            <div class="success-message" id="success-message-text">Terima kasih telah mempercayakan cucian Anda kepada Laughndry. Kurir kami akan segera menjemput pakaian Anda.</div>
-            <button class="success-btn" onclick="closeSuccessModal()">Kembali ke Beranda</button>
+            <div class="success-title" id="success-title">Pesanan Berhasil!</div>
+            <div class="success-message" id="success-message-text">Terima kasih telah mempercayakan cucian Anda kepada
+                Laughndry. Kurir kami akan segera menjemput pakaian Anda.</div>
+            <button class="success-btn" id="success-btn" onclick="closeSuccessModal()">Kembali ke Beranda</button>
         </div>
     </div>
 
@@ -753,21 +807,26 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ...checkoutData, payment_type: 'tunai', is_tunai: true })
                 })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('success-message-text').innerText = 'Pesanan Anda telah kami terima. Silakan bawa pakaian Anda ke outlet kami dan lakukan pembayaran tunai di kasir.';
-                        document.getElementById('success-modal').classList.add('show');
-                    } else {
-                        alert('Gagal menyimpan pesanan: ' + data.message);
-                    }
-                })
-                .catch(() => alert('Terjadi kesalahan jaringan. Coba lagi.'))
-                .finally(() => {
-                    btnConfirm.disabled = false;
-                    btnConfirm.textContent = 'Bayar Sekarang';
-                    document.getElementById('checkout-loading').style.display = 'none';
-                });
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('success-title').innerText = 'Pesanan Sedang Diproses';
+                            document.getElementById('success-message-text').innerText = 'Pesanan Anda telah kami catat dan masuk ke dalam antrean. Silakan bawa pakaian Anda ke outlet atau driver kami dan lakukan pembayaran tunai.';
+                            document.getElementById('success-icon').style.background = '#FBAD48';
+                            document.getElementById('success-icon').style.boxShadow = '0 0 0 10px rgba(251, 173, 72, 0.2)';
+                            document.getElementById('success-icon-symbol').innerText = 'hourglass_empty';
+                            document.getElementById('success-btn').style.background = '#FBAD48';
+                            document.getElementById('success-modal').classList.add('show');
+                        } else {
+                            alert('Gagal menyimpan pesanan: ' + data.message);
+                        }
+                    })
+                    .catch(() => alert('Terjadi kesalahan jaringan. Coba lagi.'))
+                    .finally(() => {
+                        btnConfirm.disabled = false;
+                        btnConfirm.textContent = 'Bayar Sekarang';
+                        document.getElementById('checkout-loading').style.display = 'none';
+                    });
             } else {
                 // ══════ ONLINE (MIDTRANS): Snap Token → Bayar → Simpan ke DB ══════
                 fetch('api/snap_token.php', {
@@ -775,53 +834,53 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(checkoutData)
                 })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success && data.snap_token) {
-                        window.snap.pay(data.snap_token, {
-                            onSuccess: function(result) {
-                                console.log('Payment success:', result);
-                                fetch('api/checkout.php', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        ...checkoutData,
-                                        payment_type: result.payment_type || 'midtrans',
-                                        midtrans_order_id: data.midtrans_order_id
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success && data.snap_token) {
+                            window.snap.pay(data.snap_token, {
+                                onSuccess: function (result) {
+                                    console.log('Payment success:', result);
+                                    fetch('api/checkout.php', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            ...checkoutData,
+                                            payment_type: result.payment_type || 'midtrans',
+                                            midtrans_order_id: data.midtrans_order_id
+                                        })
                                     })
-                                })
-                                .then(r => r.json())
-                                .then(saveResult => {
-                                    if (saveResult.success) {
-                                        document.getElementById('success-message-text').innerText = 'Pembayaran online berhasil! Terima kasih telah mempercayakan cucian Anda kepada Laughndry. Kurir kami akan segera menjemput pakaian Anda.';
-                                        document.getElementById('success-modal').classList.add('show');
-                                    } else {
-                                        alert('Pembayaran berhasil, tapi gagal menyimpan: ' + saveResult.message);
-                                    }
-                                });
-                            },
-                            onPending: function(result) {
-                                console.log('Payment pending:', result);
-                                alert('Pembayaran menunggu konfirmasi. Silakan selesaikan pembayaran Anda.');
-                            },
-                            onError: function(result) {
-                                console.error('Payment error:', result);
-                                alert('Pembayaran gagal. Silakan coba lagi.');
-                            },
-                            onClose: function() {
-                                console.log('Snap popup closed — tidak ada data disimpan');
-                            }
-                        });
-                    } else {
-                        alert('Gagal memproses: ' + (data.message || 'Unknown error'));
-                    }
-                })
-                .catch(() => alert('Terjadi kesalahan jaringan. Coba lagi.'))
-                .finally(() => {
-                    btnConfirm.disabled = false;
-                    btnConfirm.textContent = 'Bayar Sekarang';
-                    document.getElementById('checkout-loading').style.display = 'none';
-                });
+                                        .then(r => r.json())
+                                        .then(saveResult => {
+                                            if (saveResult.success) {
+                                                document.getElementById('success-message-text').innerText = 'Pembayaran online berhasil! Terima kasih telah mempercayakan cucian Anda kepada Laughndry. Kurir kami akan segera menjemput pakaian Anda.';
+                                                document.getElementById('success-modal').classList.add('show');
+                                            } else {
+                                                alert('Pembayaran berhasil, tapi gagal menyimpan: ' + saveResult.message);
+                                            }
+                                        });
+                                },
+                                onPending: function (result) {
+                                    console.log('Payment pending:', result);
+                                    alert('Pembayaran menunggu konfirmasi. Silakan selesaikan pembayaran Anda.');
+                                },
+                                onError: function (result) {
+                                    console.error('Payment error:', result);
+                                    alert('Pembayaran gagal. Silakan coba lagi.');
+                                },
+                                onClose: function () {
+                                    console.log('Snap popup closed — tidak ada data disimpan');
+                                }
+                            });
+                        } else {
+                            alert('Gagal memproses: ' + (data.message || 'Unknown error'));
+                        }
+                    })
+                    .catch(() => alert('Terjadi kesalahan jaringan. Coba lagi.'))
+                    .finally(() => {
+                        btnConfirm.disabled = false;
+                        btnConfirm.textContent = 'Bayar Sekarang';
+                        document.getElementById('checkout-loading').style.display = 'none';
+                    });
             }
         });
 

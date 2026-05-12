@@ -272,7 +272,21 @@ if ($is_admin) {
             <div class="mb-16">
                 <div class="text-center mb-8">
                     <h2 class="text-2xl sm:text-3xl font-black text-primary mb-2">Pesanan</h2>
-                    <p class="text-on-surface-variant">Daftar pesanan dari pelanggan.</p>
+                    <p class="text-on-surface-variant mb-6">Daftar pesanan dari pelanggan.</p>
+                    <div class="flex justify-center">
+                        <div class="relative inline-block text-left group" tabindex="0">
+                            <button class="inline-flex items-center gap-2 bg-primary-container text-on-primary px-6 py-2.5 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-md focus:outline-none focus:ring-4 focus:ring-primary/20">
+                                <span class="material-symbols-outlined text-lg">download</span> Download Laporan
+                                <span class="material-symbols-outlined text-lg transition-transform group-focus-within:rotate-180 group-hover:rotate-180">expand_more</span>
+                            </button>
+                            <div class="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-50">
+                                <div class="py-2 flex flex-col text-center">
+                                    <a href="export_pdf.php?period=monthly" target="_blank" class="px-4 py-3 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Bulanan</a>
+                                    <a href="export_pdf.php?period=yearly" target="_blank" class="px-4 py-3 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors">Tahunan</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
@@ -282,6 +296,7 @@ if ($is_admin) {
                             <thead class="sticky top-0 z-10">
                                 <tr class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm shadow-sm">
                                     <th class="p-4 font-bold whitespace-nowrap">ID</th>
+                                    <th class="p-4 font-bold whitespace-nowrap">Tanggal</th>
                                     <th class="p-4 font-bold whitespace-nowrap">Pelanggan</th>
                                     <th class="p-4 font-bold whitespace-nowrap">Jenis Layanan</th>
                                     <th class="p-4 font-bold whitespace-nowrap">Detail Item</th>
@@ -295,7 +310,7 @@ if ($is_admin) {
                             <tbody class="divide-y divide-outline-variant/20">
                                 <?php if (empty($orders)): ?>
                                     <tr>
-                                        <td colspan="9" class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">
+                                        <td colspan="10" class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">
                                             Belum ada pesanan.
                                         </td>
                                     </tr>
@@ -322,6 +337,7 @@ if ($is_admin) {
                                         ?>
                                         <tr class="hover:bg-surface-container-low transition-colors">
                                             <td class="p-4 font-bold text-primary">#<?= $order['id'] ?></td>
+                                            <td class="p-4 text-on-surface-variant text-sm whitespace-nowrap"><?= date('d M Y, H:i', strtotime($order['created_at'])) ?></td>
                                             <td class="p-4 font-medium text-primary"><?= htmlspecialchars($order['customer_nama']) ?></td>
                                             <td class="p-4 text-on-surface-variant text-sm"><?= htmlspecialchars($order['kategori_list'] ?? '-') ?></td>
                                             <td class="p-4 text-on-surface-variant text-sm max-w-[200px]"><?= htmlspecialchars($order['item_list'] ?? '-') ?></td>

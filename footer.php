@@ -94,7 +94,7 @@
             class="block rounded-2xl overflow-hidden h-48 relative group cursor-pointer shadow-lg hover:shadow-xl transition-all">
             <img alt="Peta Lokasi"
                 class="w-full h-full object-cover opacity-50 group-hover:opacity-70 transition-opacity duration-300"
-                src="assets/gambar/Basemap image.png" />
+                src="assets/gambar/peta.png" />
             <div
                 class="absolute inset-0 bg-primary/40 group-hover:bg-primary/20 transition-colors flex items-center justify-center">
                 <div
@@ -255,16 +255,16 @@
             const indicator = item.querySelector('.nav-indicator');
 
             // reset classes
-            item.classList.remove('text-emerald-900', 'font-bold', 'active-link');
-            item.classList.add('text-emerald-800/70');
+            item.classList.remove('text-white', 'font-bold', 'active-link');
+            item.classList.add('text-white/70');
             if (indicator) {
                 indicator.classList.remove('scale-x-100');
                 indicator.classList.add('scale-x-0');
             }
 
             if (href === '#' + current || (current === '' && href === '#')) {
-                item.classList.add('text-emerald-900', 'font-bold', 'active-link');
-                item.classList.remove('text-emerald-800/70');
+                item.classList.add('text-white', 'font-bold', 'active-link');
+                item.classList.remove('text-white/70');
                 if (indicator) {
                     indicator.classList.add('scale-x-100');
                     indicator.classList.remove('scale-x-0');

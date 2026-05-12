@@ -29,71 +29,22 @@ $about_cards = [
 // ─── Service Cards ──────────────────────────────────────────────────────────
 $services = [
     [
-        'id' => 'cuci-setrika',
-        'icon' => 'wash',
-        'title' => 'Cuci - Setrika (Min 3kg)',
-        'desc' => 'Paket lengkap perawatan pakaian
-harian Anda. Bersih maksimal dan rapi
-siap pakai.',
-
-    ],
-    [
-        'id' => 'hanya-setrika',
-        'icon' => 'iron',
-        'title' => 'Hanya Setrika (Min 3kg)',
-        'desc' => 'Cucian sudah bersih? Serahkan urusan
-menyetrika yang melelahkan kepada
-tenaga ahli kami.',
-
+        'id' => 'self-service',
+        'icon' => 'local_laundry_service',
+        'title' => 'Self Service',
+        'desc' => 'Cuci pakaian sendiri dengan mesin modern yang mudah digunakan. Praktis, hemat waktu, dan cocok untuk kebutuhan laundry harian Anda.',
     ],
     [
         'id' => 'cuci-lipat',
-        'icon' => 'checkroom',
-        'title' => 'Cuci - Lipat (Min 3kg)',
-        'desc' => 'Solusi praktis untuk pakaian santai.
-Cuci bersih dan kering, langsung dilipat
-rapi.',
-    ],
-
-    [
-        'id' => 'cuci-kering',
-        'icon' => 'local_laundry_service',
-        'title' => 'Cuci - Kering',
-        'desc' => 'Layanan cepat kering untuk Anda yang
-memiliki mobilitas tinggi dan butuh hasil
-instan.',
-    ],
-    [
-        'id' => 'self-service',
-        'icon' => 'layers',
-        'title' => 'Self Service',
-        'desc' => 'Gunakan mesin modern kami secara
-mandiri. Lebih ekonomis dan sesuai
-privasi Anda.',
+        'icon' => 'scale',
+        'title' => 'Kiloan',
+        'desc' => 'Layanan laundry berdasarkan berat dengan proses cepat dan hasil bersih maksimal. Cocok untuk pakaian sehari-hari agar tetap rapi dan segar.',
     ],
     [
         'id' => 'satuan-bedcover-seprei',
-        'icon' => 'bed',
-        'title' => 'Satuan Bedcover Seprei',
-        'desc' => 'Pembersihan mendalam untuk
-perlengkapan tidur Anda agar istirahat
-tetap higienis.',
-    ],
-    [
-        'id' => 'satuan',
-        'icon' => 'diamond',
-        'title' => 'Satuan',
-        'desc' => 'Perawatan khusus untuk pakaian
-branded, jas, gaun, atau item
-kesayangan lainnya.',
-    ],
-    [
-        'id' => 'dry-clean',
         'icon' => 'dry_cleaning',
-        'title' => 'Dry Clean',
-        'desc' => 'Pencucian tanpa air menggunakan
-bahan khusus untuk menjaga serat kain
-tetap awet.',
+        'title' => 'Satuan',
+        'desc' => 'Perawatan khusus untuk pakaian tertentu seperti jas, gaun, jaket, atau item favorit Anda dengan penanganan lebih detail dan aman.',
     ],
 ];
 
@@ -101,11 +52,11 @@ tetap awet.',
 $faqs = [
     [
         'q' => 'Layanan apa saja yang tersedia di Laughndry?',
-        'a' => 'Kami menyediakan berbagai pilihan, seperti:<br>· Self service (cuci kering sendiri): Layanan cepat dan praktis.<br>· Terima Beres (Drop off): Layanan cuci kering lipat dan cuci setrika.<br>· Layanan Satuan: Pilihan tepat untuk bahan pakaian yang sensitif.'
+        'a' => 'Kami menyediakan berbagai pilihan, seperti:<br>· Self service: Layanan Cuci Pakaian sendiri dengan cepat dan praktis.<br>· Kiloan: Layanan berdasarkan berat dengan proses cepat dan hasil bersih maksimal.<br>· Satuan: Pilihan tepat untuk bahan pakaian yang sensitif.'
     ],
     [
         'q' => 'Berapa lama waktu pengerjaannya?',
-        'a' => 'Tergantung dengan layanan yang dipilih, pengerjaan dapat selesai dalam hitungan jam hingga 1-2 hari kerja untuk hasil yang lebih maksimal.'
+        'a' => 'Tergantung dengan layanan yang dipilih, Untuk Self Service pengerjaan dapat selesai dalam hitungan jam. Untuk kiloan & Satuan selesai 1-2 hari kerja untuk hasil yang lebih maksimal.'
     ],
     [
         'q' => 'Apakah Laughndry menerima cuci bedcover atau gorden?',
@@ -121,7 +72,7 @@ $faqs = [
     ],
     [
         'q' => 'Bagaimana cara memesan layanan Laughndry?',
-        'a' => 'Anda dapat memesan layanan kami melalui WhatsApp atau langsung datang ke outlet kami di Serpong.'
+        'a' => 'Anda dapat memesan layanan kami melalui  Website, WhatsApp atau langsung datang ke outlet kami di Serpong.'
     ]
 ];
 
@@ -198,6 +149,35 @@ $nav_links = [
 // ─── Full Price List (harga.php) ───────────────────────────────────────────
 $full_price_list = [
     [
+        'id' => 'self-service',
+        'category' => 'Self Service',
+        'desc' => 'Cuci dan keringkan mandiri tanpa lipat',
+        'items' => [
+            ['name' => 'Mesin 5 Kg', 'price' => 'Rp 5.000'],
+            ['name' => 'Mesin 8 Kg', 'price' => 'Rp 10.000'],
+        ]
+    ],
+    [
+        'id' => 'cuci-kering',
+        'category' => 'Cuci Kering',
+        'desc' => 'Pakaian kotor dicuci bersih lalu dikeringkan maksimal',
+        'items' => [
+            ['name' => 'Reguler (2 Hari) 5 Kg', 'price' => 'Rp 20.000'],
+            ['name' => 'Reguler (2 Hari) 8 Kg', 'price' => 'Rp 30.000'],
+            ['name' => 'Express (8 Jam) 5 Kg', 'price' => 'Rp 25.000'],
+            ['name' => 'Express (8 Jam) 8 Kg', 'price' => 'Rp 35.000'],
+        ]
+    ],
+    [
+        'id' => 'cuci-lipat',
+        'category' => 'Cuci Lipat 3 Kg',
+        'desc' => 'Pakaian kotor dicuci bersih, kering secara maksimal dengan mesin yang besar, lalu pelipatan rapi.',
+        'items' => [
+            ['name' => 'Express 6 Jam', 'price' => 'Rp 7.000 /kg'],
+            ['name' => 'Reguler 3 hari', 'price' => 'Rp 6.500 /kg'],
+        ]
+    ],
+    [
         'id' => 'cuci-setrika',
         'category' => 'Cuci - Setrika Min 3 Kg',
         'desc' => 'Solusi lengkap untuk pakaian bersih, harum, dan rapi seketika. Minimal order 3kg.',
@@ -220,45 +200,6 @@ $full_price_list = [
             ['name' => 'Paket 30kg / Bulan (Reguler)', 'price' => 'Rp 150.000'],
             ['name' => 'Paket 50kg / Bulan (Reguler)', 'price' => 'Rp 250.000'],
             ['name' => 'Paket 75kg / Bulan (Reguler)', 'price' => 'Rp 370.000'],
-        ]
-    ],
-    [
-        'id' => 'cuci-lipat',
-        'category' => 'Cuci Lipat 3 Kg',
-        'desc' => 'Pakaian kotor dicuci bersih, kering secara maksimal dengan mesin yang besar, lalu pelipatan rapi.',
-        'items' => [
-            ['name' => 'Express 6 Jam', 'price' => 'Rp 7.000 /kg'],
-            ['name' => 'Reguler 3 hari', 'price' => 'Rp 6.500 /kg'],
-        ]
-    ],
-    [
-        'id' => 'cuci-kering',
-        'category' => 'Cuci Kering',
-        'desc' => 'Pakaian kotor dicuci bersih lalu dikeringkan maksimal',
-        'items' => [
-            ['name' => 'Reguler (2 Hari) 5 Kg', 'price' => 'Rp 20.000'],
-            ['name' => 'Reguler (2 Hari) 8 Kg', 'price' => 'Rp 30.000'],
-            ['name' => 'Express (8 Jam) 5 Kg', 'price' => 'Rp 25.000'],
-            ['name' => 'Express (8 Jam) 8 Kg', 'price' => 'Rp 35.000'],
-        ]
-    ],
-    [
-        'id' => 'self-service',
-        'category' => 'Self Service',
-        'desc' => 'Cuci dan keringkan mandiri tanpa lipat',
-        'items' => [
-            ['name' => 'Mesin 5 Kg', 'price' => 'Rp 5.000'],
-            ['name' => 'Mesin 8 Kg', 'price' => 'Rp 10.000'],
-        ]
-    ],
-    [
-        'id' => 'dry-clean',
-        'category' => 'Dry Clean',
-        'desc' => 'Perawatan khusus tanpa air untuk pakaian bebas kerusakan',
-        'items' => [
-            ['name' => 'Kemeja Panjang', 'price' => 'Rp 35.000'],
-            ['name' => 'Kemeja Pendek', 'price' => 'Rp 30.000'],
-            ['name' => 'Celana Panjang', 'price' => 'Rp 35.000'],
         ]
     ],
     [
@@ -318,6 +259,16 @@ $full_price_list = [
             ['name' => 'Guling', 'price' => 'Rp 15.000'],
             ['name' => 'Kemeja Panjang', 'price' => 'Rp 30.000'],
             ['name' => 'Kemeja Pendek', 'price' => 'Rp 25.000'],
+        ]
+    ],
+    [
+        'id' => 'dry-clean',
+        'category' => 'Dry Clean',
+        'desc' => 'Perawatan khusus tanpa air untuk pakaian bebas kerusakan',
+        'items' => [
+            ['name' => 'Kemeja Panjang', 'price' => 'Rp 35.000'],
+            ['name' => 'Kemeja Pendek', 'price' => 'Rp 30.000'],
+            ['name' => 'Celana Panjang', 'price' => 'Rp 35.000'],
         ]
     ]
 ];
