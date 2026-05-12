@@ -64,7 +64,7 @@ require_once __DIR__ . '/header.php';
         </div>
     </div>
 
-    <div class="relative hero-image-animate">
+    <div class="relative hero-image-animate w-11/12 sm:w-4/5 md:w-11/12 lg:w-3/4 xl:w-2/3 mx-auto lg:mr-0">
         <div class="absolute inset-0 bg-primary-container rounded-[3rem] -rotate-3 z-0"></div>
         <img alt="Laughndry Experience"
             class="relative z-10 w-full aspect-[4/5] object-cover rounded-[2.5rem] shadow-2xl grayscale-[0.2] hover:grayscale-0 transition-all duration-700"
