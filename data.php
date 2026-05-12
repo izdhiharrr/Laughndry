@@ -153,7 +153,7 @@ $full_price_list = [
         'category' => 'Self Service',
         'desc' => 'Cuci dan keringkan mandiri tanpa lipat',
         'items' => [
-            ['name' => 'Mesin 5 Kg', 'price' => 'Rp 5.000'],
+            ['name' => 'Mesin 4  Kg', 'price' => 'Rp 5.000'],
             ['name' => 'Mesin 8 Kg', 'price' => 'Rp 10.000'],
         ]
     ],
@@ -162,9 +162,9 @@ $full_price_list = [
         'category' => 'Cuci Kering',
         'desc' => 'Pakaian kotor dicuci bersih lalu dikeringkan maksimal',
         'items' => [
-            ['name' => 'Reguler (2 Hari) 5 Kg', 'price' => 'Rp 20.000'],
+            ['name' => 'Reguler (2 Hari) 4 Kg', 'price' => 'Rp 20.000'],
             ['name' => 'Reguler (2 Hari) 8 Kg', 'price' => 'Rp 30.000'],
-            ['name' => 'Express (8 Jam) 5 Kg', 'price' => 'Rp 25.000'],
+            ['name' => 'Express (8 Jam) 4 Kg', 'price' => 'Rp 25.000'],
             ['name' => 'Express (8 Jam) 8 Kg', 'price' => 'Rp 35.000'],
         ]
     ],
@@ -173,8 +173,9 @@ $full_price_list = [
         'category' => 'Cuci Lipat 3 Kg',
         'desc' => 'Pakaian kotor dicuci bersih, kering secara maksimal dengan mesin yang besar, lalu pelipatan rapi.',
         'items' => [
-            ['name' => 'Express 6 Jam', 'price' => 'Rp 7.000 /kg'],
-            ['name' => 'Reguler 3 hari', 'price' => 'Rp 6.500 /kg'],
+            ['name' => 'Express 3 Jam', 'price' => 'Rp 13.000 /kg'],
+            ['name' => 'Express 6 Jam', 'price' => 'Rp 10.000 /kg'],
+            ['name' => 'SHS Satu Hari Saja (1 Hari)', 'price' => 'Rp 8.000 /kg'],
         ]
     ],
     [
@@ -196,7 +197,7 @@ $full_price_list = [
         'desc' => 'Hilangkan kerutan membandel dengan uap panas presisi. Minimal order 3kg.',
         'items' => [
             ['name' => 'Express 6 Jam', 'price' => 'Rp 10.000 /kg'],
-            ['name' => 'Reguler 3 hari', 'price' => 'Rp 6.000 /kg'],
+            ['name' => 'Reguler (1 Hari)', 'price' => 'Rp 6.000 /kg'],
             ['name' => 'Paket 30kg / Bulan (Reguler)', 'price' => 'Rp 150.000'],
             ['name' => 'Paket 50kg / Bulan (Reguler)', 'price' => 'Rp 250.000'],
             ['name' => 'Paket 75kg / Bulan (Reguler)', 'price' => 'Rp 370.000'],

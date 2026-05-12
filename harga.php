@@ -6,18 +6,21 @@ require_once __DIR__ . '/header.php';
 ?>
 
 <!-- ═══════════════════════════ HEADER PAGE ═══════════════════════════ -->
-<section class="pt-16 sm:pt-24 pb-12 bg-surface-container-low">
-    <div class="max-w-7xl mx-auto px-4 sm:px-8 text-left mt-8">
+<section class="pt-20 sm:pt-10 pb-12 bg-surface-container-low">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 text-left mt-0 sm:mt-2">
         <!-- Tombol Kembali -->
         <div class="mb-8">
             <a href="index.php"
                 class="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-xl group">
-                <span class="material-symbols-outlined text-base group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                <span
+                    class="material-symbols-outlined text-base group-hover:-translate-x-1 transition-transform">arrow_back</span>
                 Kembali
             </a>
         </div>
-        <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-primary leading-tight mb-4">Detail Lengkap<br>Daftar Harga Laughndry</h1>
-        <p class="text-on-surface-variant text-base sm:text-lg max-w-2xl">Transparansi harga untuk kualitas premium. Temukan paket
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-primary leading-tight mb-4">Detail Lengkap<br>Daftar
+            Harga Laughndry</h1>
+        <p class="text-on-surface-variant text-base sm:text-lg max-w-2xl">Transparansi harga untuk kualitas premium.
+            Temukan paket
             layanan laundry terbaik yang dirancang khusus untuk kebutuhan gaya hidup Anda yang dinamis.
         </p>
     </div>
