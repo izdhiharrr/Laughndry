@@ -23,8 +23,6 @@ yarn-error.log*
 .env.test
 .env.production
 
-# Midtrans credentials (jangan push ke repo!)
-config/midtrans.php
 
 # Composer dependencies
 vendor/
