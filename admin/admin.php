@@ -72,7 +72,7 @@ if ($is_admin) {
             o.metode_bayar,
             o.status,
             o.created_at,
-            GROUP_CONCAT(oi.kategori SEPARATOR ', ') AS kategori_list,
+            GROUP_CONCAT(DISTINCT oi.kategori SEPARATOR ', ') AS kategori_list,
             GROUP_CONCAT(CONCAT(oi.nama_item, ' (x', oi.qty, ')') SEPARATOR ', ') AS item_list,
             SUM(oi.qty) AS total_qty
         FROM orders o
@@ -90,6 +90,28 @@ if ($is_admin) {
     $total_customers = count($customers);
     $total_revenue = $pdo->query("SELECT COALESCE(SUM(total_harga), 0) FROM orders")->fetchColumn();
     $pending_orders = $pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
+
+    // Chart data: 4 minggu terakhir
+    $chart_data = $pdo->query("
+        SELECT 
+            YEARWEEK(created_at, 1) AS minggu,
+            MIN(DATE(created_at)) AS start_date,
+            COUNT(*) AS total_pesanan,
+            COALESCE(SUM(total_harga), 0) AS total_revenue
+        FROM orders
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 4 WEEK)
+        GROUP BY YEARWEEK(created_at, 1)
+        ORDER BY minggu ASC
+    ")->fetchAll();
+
+    $chart_labels = [];
+    $chart_orders = [];
+    $chart_revenue = [];
+    foreach ($chart_data as $row) {
+        $chart_labels[] = date('d M', strtotime($row['start_date']));
+        $chart_orders[] = (int) $row['total_pesanan'];
+        $chart_revenue[] = (int) $row['total_revenue'];
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -104,6 +126,7 @@ if ($is_admin) {
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
     <link href="../style.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -168,6 +191,211 @@ if ($is_admin) {
             }
         };
     </script>
+    <!-- DataTables Tailwind CSS Styling -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.tailwindcss.css" />
+    <style>
+        /* --- CUSTOM DATATABLES PRETTIER OVERRIDES --- */
+        /* Search Input Styling */
+        .dt-search {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            font-weight: 600 !important;
+            color: #00433a !important; /* Primary Color */
+        }
+        .dt-search input {
+            background-color: #ffffff !important;
+            border: 2px solid rgba(111, 121, 118, 0.2) !important;
+            border-radius: 0.75rem !important;
+            padding: 0.375rem 1rem !important;
+            font-size: 0.875rem !important;
+            color: #1a1c1c !important;
+            outline: none !important;
+            transition: all 0.2s ease-in-out !important;
+            width: 200px !important;
+        }
+        .dt-search input:focus {
+            border-color: #00433a !important;
+            box-shadow: 0 0 0 4px rgba(0, 67, 58, 0.1) !important;
+        }
+
+        /* Length Select Dropdown Styling */
+        .dt-length {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            font-weight: 600 !important;
+            color: #00433a !important; /* Primary Color */
+        }
+        .dt-length select {
+            background-color: #ffffff !important;
+            border: 2px solid rgba(111, 121, 118, 0.2) !important;
+            border-radius: 0.75rem !important;
+            padding: 0.375rem 2rem 0.375rem 0.75rem !important;
+            font-size: 0.875rem !important;
+            color: #1a1c1c !important;
+            font-weight: 600 !important;
+            outline: none !important;
+            transition: all 0.2s ease-in-out !important;
+            cursor: pointer !important;
+            width: auto !important;
+            min-width: 80px !important;
+        }
+        .dt-length select:focus {
+            border-color: #00433a !important;
+            box-shadow: 0 0 0 4px rgba(0, 67, 58, 0.1) !important;
+        }
+
+        /* Pagination Buttons Styling */
+        .dt-paging {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.25rem !important;
+        }
+        .dt-paging-button {
+            border-radius: 0.5rem !important;
+            font-weight: 600 !important;
+            font-size: 0.875rem !important;
+            transition: all 0.2s ease !important;
+            border: 2px solid transparent !important;
+            padding: 0.375rem 0.75rem !important;
+        }
+        .dt-paging-button.current {
+            background-color: #00433a !important;
+            color: #ffffff !important;
+            border-color: #00433a !important;
+        }
+        .dt-paging-button:hover:not(.current):not(.disabled) {
+            background-color: rgba(0, 67, 58, 0.05) !important;
+            color: #00433a !important;
+            border-color: rgba(0, 67, 58, 0.2) !important;
+        }
+        .dt-paging-button.disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+        }
+
+        /* Table Header Styles */
+        #orders-table thead th,
+        #customers-table thead th {
+            background-color: #eeeeee !important; /* surface-container */
+            color: #00433a !important; /* primary */
+            border-bottom: 2px solid rgba(111, 121, 118, 0.3) !important;
+            font-weight: 700 !important;
+        }
+
+        /* Style the DataTables native scroll container */
+        .dt-scroll {
+            border-radius: 0.75rem !important;
+            border: 2px solid rgba(111, 121, 118, 0.15) !important;
+            background-color: #ffffff !important;
+            margin: 1.5rem 0 !important;
+            overflow: hidden !important;
+        }
+        .dt-scroll-body {
+            overflow-x: auto !important;
+            width: 100% !important;
+        }
+        
+        /* Compact but premium padding for both tables */
+        #orders-table th,
+        #orders-table td,
+        #customers-table th,
+        #customers-table td,
+        .bg-surface-container-lowest table th,
+        .bg-surface-container-lowest table td {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+        }
+        
+        /* Ensure table doesn't have border inside it that clashes */
+        #orders-table,
+        #customers-table {
+            border-bottom: none !important;
+        }
+        
+        /* Hide duplicate header and sorting arrows in scroll body */
+        .dt-scroll-body thead,
+        .dt-scroll-body thead tr,
+        .dt-scroll-body thead th {
+            height: 0px !important;
+            line-height: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            border: none !important;
+            visibility: hidden !important;
+        }
+        .dt-scroll-body thead th * {
+            display: none !important;
+        }
+        .dt-scroll-body thead th::before,
+        .dt-scroll-body thead th::after {
+            display: none !important;
+            content: "" !important;
+        }
+
+        /* --- RESPONSIVE MOBILE OVERRIDES (max-width: 640px) --- */
+        @media (max-width: 640px) {
+            /* Force DataTables layout rows to stack vertically */
+            div.dt-container div.dt-layout-row {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 0.75rem !important;
+                grid-template-columns: 1fr !important;
+            }
+            div.dt-container div.dt-layout-row > div {
+                width: 100% !important;
+                display: flex !important;
+                justify-content: center !important;
+                padding: 0 !important;
+                float: none !important;
+            }
+            /* Hide length selector on mobile, only show search */
+            .dt-length {
+                display: none !important;
+            }
+            .dt-search {
+                width: 100% !important;
+                justify-content: center !important;
+                flex-wrap: wrap !important;
+            }
+            .dt-search input {
+                flex: 1 !important;
+                width: auto !important;
+                min-width: 120px !important;
+            }
+
+            /* Bottom row: force info on top, paging below */
+            div.dt-container div.dt-layout-row:last-child {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 0.75rem !important;
+                grid-template-columns: 1fr !important;
+            }
+            div.dt-container div.dt-layout-row:last-child > div {
+                width: 100% !important;
+                display: block !important;
+                float: none !important;
+                text-align: center !important;
+            }
+            .dt-info {
+                text-align: center !important;
+                width: 100% !important;
+            }
+            .dt-paging {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                justify-content: center !important;
+                gap: 0.25rem !important;
+            }
+        }
+    </style>
 </head>
 
 <body class="bg-background text-on-surface antialiased">
@@ -239,6 +467,19 @@ if ($is_admin) {
                         <span class="material-symbols-outlined text-xl">logout</span> Logout
                     </a>
                 </div>
+                <!-- ═══════════ NAVIGATION TABS ═══════════ -->
+                <div class="flex gap-4 mb-8 border-b border-outline-variant/20 pb-4">
+                    <button id="btn-tab-pesanan" onclick="switchTab('pesanan')" 
+                        class="flex-1 sm:flex-initial justify-center px-6 py-3 font-bold rounded-full transition-all text-sm flex items-center gap-2 bg-primary text-on-primary shadow-lg shadow-primary/20">
+                        <span class="material-symbols-outlined text-lg">receipt_long</span>
+                        Pesanan
+                    </button>
+                    <button id="btn-tab-pelanggan" onclick="switchTab('pelanggan')" 
+                        class="flex-1 sm:flex-initial justify-center px-6 py-3 font-bold rounded-full transition-all text-sm flex items-center gap-2 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant">
+                        <span class="material-symbols-outlined text-lg">group</span>
+                        Pelanggan
+                    </button>
+                </div>
 
                 <!-- ═══════════ STAT CARDS ═══════════ -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
@@ -281,209 +522,460 @@ if ($is_admin) {
                     </div>
                 </div>
 
-                <!-- ═══════════ PESANAN TABLE ═══════════ -->
-                <div class="mb-16">
-                    <div class="text-center mb-8">
-                        <h2 class="text-2xl sm:text-3xl font-black text-primary mb-2">Pesanan</h2>
-                        <p class="text-on-surface-variant mb-6">Daftar pesanan dari pelanggan.</p>
-                        <div class="flex justify-center">
-                            <div class="relative inline-block text-left group" tabindex="0">
-                                <button
-                                    class="inline-flex items-center gap-2 bg-primary-container text-on-primary px-6 py-2.5 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-md focus:outline-none focus:ring-4 focus:ring-primary/20">
-                                    <span class="material-symbols-outlined text-lg">download</span> Download Laporan
-                                    <span
-                                        class="material-symbols-outlined text-lg transition-transform group-focus-within:rotate-180 group-hover:rotate-180">expand_more</span>
-                                </button>
-                                <div
-                                    class="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-50">
-                                    <div class="py-2 flex flex-col text-center">
-                                        <a href="export_pdf.php?period=monthly" target="_blank"
-                                            class="px-4 py-3 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Bulanan</a>
-                                        <a href="export_pdf.php?period=yearly" target="_blank"
-                                            class="px-4 py-3 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors">Tahunan</a>
-                                    </div>
-                                </div>
+                <!-- ═══════════ CHART CARDS ═══════════ -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-12">
+                    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center">
+                                <span class="material-symbols-outlined text-primary text-xl">trending_up</span>
+                            </div>
+                            <div>
+                                <h3 class="text-sm text-on-surface-variant font-medium">Tren Pesanan</h3>
+                                <p class="text-xs text-on-surface-variant/60">4 minggu terakhir</p>
                             </div>
                         </div>
-                    </div>
-
-                    <div
-                        class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
-                        <!-- Table -->
-                        <div
-                            class="overflow-x-auto overflow-y-auto max-h-[480px] rounded-xl border border-outline-variant/20 relative">
-                            <table class="w-full text-left border-collapse min-w-[900px]">
-                                <thead class="sticky top-0 z-10">
-                                    <tr
-                                        class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm shadow-sm">
-                                        <th class="p-4 font-bold whitespace-nowrap">ID</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Tanggal</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Pelanggan</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Jenis Layanan</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Detail Item</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Qty</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Harga Total</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Metode Bayar</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Status</th>
-                                        <th class="p-4 font-bold whitespace-nowrap text-center">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-outline-variant/20">
-                                    <?php if (empty($orders)): ?>
-                                        <tr>
-                                            <td colspan="10"
-                                                class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">
-                                                Belum ada pesanan.
-                                            </td>
-                                        </tr>
-                                    <?php else: ?>
-                                        <?php foreach ($orders as $order): ?>
-                                            <?php
-                                            // Status badge colors
-                                            $status_colors = [
-                                                'pending' => 'bg-yellow-100 text-yellow-800',
-                                                'diproses' => 'bg-blue-100 text-blue-800',
-                                                'dicuci' => 'bg-cyan-100 text-cyan-800',
-                                                'selesai' => 'bg-green-100 text-green-800',
-                                                'diambil' => 'bg-gray-100 text-gray-600',
-                                            ];
-                                            $badge = $status_colors[$order['status']] ?? 'bg-gray-100 text-gray-600';
-
-                                            // Metode bayar badge
-                                            $metode_icons = [
-                                                'tunai' => '💵 Tunai',
-                                                'qris' => '🔲 QRIS',
-                                                'transfer' => '🏦 Transfer',
-                                                'bank_transfer' => '🏦 Transfer',
-                                                'credit_card' => '💳 Kartu Kredit',
-                                                'gopay' => '📱 GoPay',
-                                                'shopeepay' => '📱 ShopeePay',
-                                                'cstore' => '🏪 Minimarket',
-                                                'echannel' => '🏦 Mandiri Bill',
-                                                'midtrans' => '💳 Online',
-                                            ];
-                                            $raw_metode = $order['metode_bayar'] ?? '';
-                                            $metode_label = $metode_icons[$raw_metode] ?? ($raw_metode ?: '💳 Online');
-                                            ?>
-                                            <tr class="hover:bg-surface-container-low transition-colors">
-                                                <td class="p-4 font-bold text-primary">#<?= $order['id'] ?></td>
-                                                <td class="p-4 text-on-surface-variant text-sm whitespace-nowrap">
-                                                    <?= date('d M Y, H:i', strtotime($order['created_at'])) ?></td>
-                                                <td class="p-4 font-medium text-primary">
-                                                    <?= htmlspecialchars($order['customer_nama']) ?></td>
-                                                <td class="p-4 text-on-surface-variant text-sm">
-                                                    <?= htmlspecialchars($order['kategori_list'] ?? '-') ?></td>
-                                                <td class="p-4 text-on-surface-variant text-sm max-w-[200px]">
-                                                    <?= htmlspecialchars($order['item_list'] ?? '-') ?></td>
-                                                <td class="p-4 text-on-surface-variant font-medium"><?= $order['total_qty'] ?? 0 ?>
-                                                </td>
-                                                <td class="p-4 font-bold text-secondary">Rp
-                                                    <?= number_format($order['total_harga'], 0, ',', '.') ?></td>
-                                                <td class="p-4 text-sm"><?= $metode_label ?></td>
-                                                <td class="p-4">
-                                                    <!-- Status Update Form -->
-                                                    <form method="POST" action="admin.php" class="inline">
-                                                        <input type="hidden" name="update_status" value="1">
-                                                        <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
-                                                        <select name="new_status" onchange="this.form.submit()"
-                                                            class="text-xs font-bold pl-4 pr-8 py-2 rounded-full border-0 cursor-pointer min-w-[120px] <?= $badge ?> focus:ring-2 focus:ring-primary/20">
-                                                            <?php foreach (['pending', 'diproses', 'dicuci', 'selesai', 'diambil'] as $s): ?>
-                                                                <option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>>
-                                                                    <?= ucfirst($s) ?>
-                                                                </option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    </form>
-                                                </td>
-                                                <td class="p-4 text-center">
-                                                    <a href="?delete_order=<?= $order['id'] ?>"
-                                                        onclick="return confirm('Yakin hapus pesanan #<?= $order['id'] ?>?')"
-                                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors">
-                                                        <span class="material-symbols-outlined text-base">delete</span>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
+                        <div style="position: relative; height: 200px;">
+                            <canvas id="ordersChart"></canvas>
                         </div>
-
-                        <!-- Info -->
-                        <div
-                            class="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4 text-sm text-on-surface-variant">
-                            <div>Menampilkan <?= count($orders) ?> pesanan</div>
+                    </div>
+                    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 bg-secondary-fixed rounded-full flex items-center justify-center">
+                                <span class="material-symbols-outlined text-secondary text-xl">payments</span>
+                            </div>
+                            <div>
+                                <h3 class="text-sm text-on-surface-variant font-medium">Tren Revenue</h3>
+                                <p class="text-xs text-on-surface-variant/60">4 minggu terakhir</p>
+                            </div>
+                        </div>
+                        <div style="position: relative; height: 200px;">
+                            <canvas id="revenueChart"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <!-- ═══════════ PROFIL PELANGGAN TABLE ═══════════ -->
-                <div>
-                    <div class="text-center mb-8">
-                        <h2 class="text-2xl sm:text-3xl font-black text-primary mb-2">Profil Pelanggan</h2>
-                        <p class="text-on-surface-variant">Daftar pelanggan yang terdaftar.</p>
-                    </div>
-
-                    <div
-                        class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
-                        <!-- Table -->
-                        <div
-                            class="overflow-x-auto overflow-y-auto max-h-[480px] rounded-xl border border-outline-variant/20 relative">
-                            <table class="w-full text-left border-collapse min-w-[800px]">
-                                <thead class="sticky top-0 z-10">
-                                    <tr
-                                        class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm shadow-sm">
-                                        <th class="p-4 font-bold whitespace-nowrap w-24">ID</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Nama</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Alamat</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Nomor Telepon</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Terdaftar</th>
-                                        <th class="p-4 font-bold text-center w-24">Delete</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-outline-variant/20">
-                                    <?php if (empty($customers)): ?>
-                                        <tr>
-                                            <td colspan="6"
-                                                class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">
-                                                Belum ada pelanggan terdaftar.
-                                            </td>
-                                        </tr>
-                                    <?php else: ?>
-                                        <?php foreach ($customers as $cust): ?>
-                                            <tr class="hover:bg-surface-container-low transition-colors group">
-                                                <td class="p-4 text-on-surface-variant font-medium"><?= $cust['id'] ?></td>
-                                                <td class="p-4 font-bold text-primary"><?= htmlspecialchars($cust['nama']) ?></td>
-                                                <td class="p-4 text-on-surface-variant"><?= htmlspecialchars($cust['alamat']) ?>
-                                                </td>
-                                                <td class="p-4 text-on-surface-variant"><?= htmlspecialchars($cust['telepon']) ?>
-                                                </td>
-                                                <td class="p-4 text-on-surface-variant text-sm">
-                                                    <?= date('d M Y', strtotime($cust['created_at'])) ?></td>
-                                                <td class="p-4 text-center">
-                                                    <a href="?delete_customer=<?= $cust['id'] ?>"
-                                                        onclick="return confirm('Yakin hapus pelanggan <?= htmlspecialchars($cust['nama']) ?>? Semua pesanannya juga akan terhapus.')"
-                                                        class="px-4 py-2 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors inline-flex items-center gap-1">
-                                                        <span class="material-symbols-outlined text-base">delete</span> Delete
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
+                <!-- ═══════════ PESANAN TAB CONTENT ═══════════ -->
+                <div id="tab-content-pesanan" class="tab-content transition-all duration-300">
+                    <div class="mb-16">
+                        <div class="text-center mb-8">
+                            <h2 class="text-2xl sm:text-3xl font-black text-primary mb-2">Pesanan</h2>
+                            <p class="text-on-surface-variant mb-6">Daftar pesanan dari pelanggan.</p>
+                            <div class="flex justify-center">
+                                <div class="relative inline-block text-left group" tabindex="0">
+                                    <button
+                                        class="inline-flex items-center gap-2 bg-primary-container text-on-primary px-6 py-2.5 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-md focus:outline-none focus:ring-4 focus:ring-primary/20">
+                                        <span class="material-symbols-outlined text-lg">download</span> Download Laporan
+                                        <span
+                                            class="material-symbols-outlined text-lg transition-transform group-focus-within:rotate-180 group-hover:rotate-180">expand_more</span>
+                                    </button>
+                                    <div
+                                        class="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-50">
+                                        <div class="py-2 flex flex-col text-center">
+                                            <a href="export_pdf.php?period=monthly" target="_blank"
+                                                class="px-4 py-3 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Bulanan</a>
+                                            <a href="export_pdf.php?period=yearly" target="_blank"
+                                                class="px-4 py-3 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors">Tahunan</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Info -->
                         <div
-                            class="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4 text-sm text-on-surface-variant">
-                            <div>Menampilkan <?= count($customers) ?> pelanggan</div>
+                            class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
+                            <!-- Table -->
+                            <table id="orders-table" class="w-full text-left border-collapse">
+                                    <thead class="sticky top-0 z-10">
+                                        <tr
+                                            class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm shadow-sm">
+                                            <th class="p-4 font-bold whitespace-nowrap">ID</th>
+                                            <th class="p-4 font-bold whitespace-nowrap">Tanggal</th>
+                                            <th class="p-4 font-bold whitespace-nowrap">Pelanggan</th>
+                                            <th class="p-4 font-bold whitespace-normal max-w-[110px]" style="width: 110px; min-width: 110px; max-width: 110px;">Jenis Layanan</th>
+                                            <th class="p-4 font-bold whitespace-normal max-w-[160px]" style="width: 160px; min-width: 160px; max-width: 160px;">Detail Item</th>
+                                            <th class="p-4 font-bold whitespace-nowrap">Qty</th>
+                                            <th class="p-4 font-bold whitespace-nowrap">Harga Total</th>
+                                            <th class="p-4 font-bold whitespace-nowrap">Metode Bayar</th>
+                                            <th class="p-4 font-bold whitespace-nowrap">Status</th>
+                                            <th class="p-4 font-bold whitespace-nowrap text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-outline-variant/20">
+                                        <?php if (empty($orders)): ?>
+                                            <tr>
+                                                <td colspan="10"
+                                                    class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">
+                                                    Belum ada pesanan.
+                                                </td>
+                                            </tr>
+                                        <?php else: ?>
+                                            <?php foreach ($orders as $order): ?>
+                                                <?php
+                                                // Status badge colors
+                                                $status_colors = [
+                                                    'pending' => 'bg-yellow-100 text-yellow-800',
+                                                    'diproses' => 'bg-blue-100 text-blue-800',
+                                                    'dicuci' => 'bg-cyan-100 text-cyan-800',
+                                                    'selesai' => 'bg-green-100 text-green-800',
+                                                    'diambil' => 'bg-gray-100 text-gray-600',
+                                                ];
+                                                $badge = $status_colors[$order['status']] ?? 'bg-gray-100 text-gray-600';
+
+                                                // Metode bayar badge
+                                                $metode_icons = [
+                                                    'tunai' => '💵 Tunai',
+                                                    'qris' => '🔲 QRIS',
+                                                    'transfer' => '🏦 Transfer',
+                                                    'bank_transfer' => '🏦 Transfer',
+                                                    'credit_card' => '💳 Kartu Kredit',
+                                                    'gopay' => '📱 GoPay',
+                                                    'shopeepay' => '📱 ShopeePay',
+                                                    'cstore' => '🏪 Minimarket',
+                                                    'echannel' => '🏦 Mandiri Bill',
+                                                    'midtrans' => '💳 Online',
+                                                ];
+                                                $raw_metode = $order['metode_bayar'] ?? '';
+                                                $metode_label = $metode_icons[$raw_metode] ?? ($raw_metode ?: '💳 Online');
+                                                ?>
+                                                <tr class="hover:bg-surface-container-low transition-colors">
+                                                    <td class="p-4 font-bold text-primary">#<?= $order['id'] ?></td>
+                                                    <td class="p-4 text-on-surface-variant text-sm whitespace-nowrap" data-order="<?= strtotime($order['created_at']) ?>">
+                                                        <?= date('d M Y, H:i', strtotime($order['created_at'])) ?></td>
+                                                    <td class="p-4 font-medium text-primary">
+                                                        <?= htmlspecialchars($order['customer_nama']) ?></td>
+                                                    <td class="p-4 text-on-surface-variant text-sm max-w-[110px] whitespace-normal break-words" style="width: 110px; min-width: 110px; max-width: 110px;">
+                                                        <?= htmlspecialchars($order['kategori_list'] ?? '-') ?></td>
+                                                    <td class="p-4 text-on-surface-variant text-sm max-w-[160px] whitespace-normal break-words" style="width: 160px; min-width: 160px; max-width: 160px;">
+                                                        <?= htmlspecialchars($order['item_list'] ?? '-') ?></td>
+                                                    <td class="p-4 text-on-surface-variant font-medium"><?= $order['total_qty'] ?? 0 ?>
+                                                    </td>
+                                                    <td class="p-4 font-bold text-secondary">Rp
+                                                        <?= number_format($order['total_harga'], 0, ',', '.') ?></td>
+                                                    <td class="p-4 text-sm"><?= $metode_label ?></td>
+                                                    <td class="p-4">
+                                                        <!-- Status Update Form -->
+                                                        <form method="POST" action="admin.php" class="inline">
+                                                            <input type="hidden" name="update_status" value="1">
+                                                            <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+                                                            <select name="new_status" onchange="this.form.submit()"
+                                                                class="text-xs font-bold pl-4 pr-8 py-2 rounded-full border-0 cursor-pointer min-w-[120px] <?= $badge ?> focus:ring-2 focus:ring-primary/20">
+                                                                <?php foreach (['pending', 'diproses', 'dicuci', 'selesai', 'diambil'] as $s): ?>
+                                                                    <option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>>
+                                                                        <?= ucfirst($s) ?>
+                                                                    </option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                        </form>
+                                                    </td>
+                                                    <td class="p-4 text-center">
+                                                        <a href="?delete_order=<?= $order['id'] ?>"
+                                                            onclick="return confirm('Yakin hapus pesanan #<?= $order['id'] ?>?')"
+                                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors">
+                                                            <span class="material-symbols-outlined text-base">delete</span>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════ PELANGGAN TAB CONTENT ═══════════ -->
+                <div id="tab-content-pelanggan" class="tab-content hidden transition-all duration-300">
+                    <div class="mb-16">
+                        <div class="text-center mb-8">
+                            <h2 class="text-2xl sm:text-3xl font-black text-primary mb-2">Profil Pelanggan</h2>
+                            <p class="text-on-surface-variant mb-6">Daftar pelanggan yang terdaftar.</p>
+                            <div class="flex justify-center">
+                                <div class="relative inline-block text-left group" tabindex="0">
+                                    <button
+                                        class="inline-flex items-center gap-2 bg-primary-container text-on-primary px-6 py-2.5 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-md focus:outline-none focus:ring-4 focus:ring-primary/20">
+                                        <span class="material-symbols-outlined text-lg">download</span> Download Laporan
+                                        <span
+                                            class="material-symbols-outlined text-lg transition-transform group-focus-within:rotate-180 group-hover:rotate-180">expand_more</span>
+                                    </button>
+                                    <div
+                                        class="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-50">
+                                        <div class="py-2 flex flex-col text-center">
+                                            <a href="export_customers_pdf.php?period=monthly" target="_blank"
+                                                class="px-4 py-3 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Bulanan</a>
+                                            <a href="export_customers_pdf.php?period=yearly" target="_blank"
+                                                class="px-4 py-3 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors">Tahunan</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
+                            <!-- Table -->
+                            <table id="customers-table" class="w-full text-left border-collapse">
+                                    <thead class="sticky top-0 z-10">
+                                        <tr
+                                            class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm shadow-sm">
+                                            <th class="p-4 font-bold whitespace-normal" style="width: 50px; min-width: 50px; max-width: 50px;">ID</th>
+                                            <th class="p-4 font-bold whitespace-normal" style="width: 150px; min-width: 150px; max-width: 150px;">Nama</th>
+                                            <th class="p-4 font-bold whitespace-normal" style="width: 250px; min-width: 250px; max-width: 250px;">Alamat</th>
+                                            <th class="p-4 font-bold whitespace-normal" style="width: 130px; min-width: 130px; max-width: 130px;">Nomor Telepon</th>
+                                            <th class="p-4 font-bold whitespace-normal" style="width: 120px; min-width: 120px; max-width: 120px;">Terdaftar</th>
+                                            <th class="p-4 font-bold text-center" style="width: 100px; min-width: 100px; max-width: 100px;">Delete</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-outline-variant/20">
+                                        <?php if (empty($customers)): ?>
+                                            <tr>
+                                                <td colspan="6"
+                                                    class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">
+                                                    Belum ada pelanggan terdaftar.
+                                                </td>
+                                            </tr>
+                                        <?php else: ?>
+                                            <?php foreach ($customers as $cust): ?>
+                                                <tr class="hover:bg-surface-container-low transition-colors group">
+                                                    <td class="p-4 text-on-surface-variant font-medium" style="width: 50px; min-width: 50px; max-width: 50px;"><?= $cust['id'] ?></td>
+                                                    <td class="p-4 font-bold text-primary whitespace-normal break-words" style="width: 150px; min-width: 150px; max-width: 150px;"><?= htmlspecialchars($cust['nama']) ?></td>
+                                                    <td class="p-4 text-on-surface-variant whitespace-normal break-words" style="width: 250px; min-width: 250px; max-width: 250px;"><?= htmlspecialchars($cust['alamat']) ?></td>
+                                                    <td class="p-4 text-on-surface-variant whitespace-normal break-words" style="width: 130px; min-width: 130px; max-width: 130px;"><?= htmlspecialchars($cust['telepon']) ?></td>
+                                                    <td class="p-4 text-on-surface-variant text-sm whitespace-normal" style="width: 120px; min-width: 120px; max-width: 120px;">
+                                                        <?= date('d M Y', strtotime($cust['created_at'])) ?></td>
+                                                    <td class="p-4 text-center" style="width: 100px; min-width: 100px; max-width: 100px;">
+                                                        <a href="?delete_customer=<?= $cust['id'] ?>"
+                                                            onclick="return confirm('Yakin hapus pelanggan <?= htmlspecialchars($cust['nama']) ?>? Semua pesanannya juga akan terhapus.')"
+                                                            class="px-4 py-2 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors inline-flex items-center gap-1">
+                                                            <span class="material-symbols-outlined text-base">delete</span> Delete
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
                         </div>
                     </div>
                 </div>
 
             </div>
         </section>
+
+        <!-- jQuery & DataTables JS -->
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <script src="https://cdn.datatables.net/2.0.8/js/dataTables.js"></script>
+        <script src="https://cdn.datatables.net/2.0.8/js/dataTables.tailwindcss.js"></script>
+
+        <script>
+            $(document).ready(function() {
+                $('#orders-table').DataTable({
+                    scrollX: true,
+                    autoWidth: false,
+                    columnDefs: [
+                        { width: "110px", targets: 3 },
+                        { width: "160px", targets: 4 },
+                        // Hanya kolom Tanggal (index 1) yang bisa di-sort
+                        { orderable: false, targets: [0, 2, 3, 4, 5, 6, 7, 8, 9] }
+                    ],
+                    // Pengurutan awal berdasarkan kolom kedua (indeks 1: Tanggal) secara DESC
+                    order: [[1, 'desc']],
+                    // Kustomisasi bahasa ke Bahasa Indonesia agar user-friendly
+                    language: {
+                        search: "Cari:",
+                        lengthMenu: "Tampilkan _MENU_ pesanan",
+                        info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ pesanan",
+                        infoEmpty: "Menampilkan 0 sampai 0 dari 0 pesanan",
+                        infoFiltered: "(disaring dari _MAX_ total pesanan)",
+                        zeroRecords: "Tidak ditemukan pesanan yang cocok",
+                        paginate: {
+                            first: "Pertama",
+                            last: "Terakhir",
+                            next: "Berikutnya",
+                            previous: "Sebelumnya"
+                        }
+                    }
+                });
+
+                $('#customers-table').DataTable({
+                    scrollX: true,
+                    autoWidth: false,
+                    columnDefs: [
+                        { width: "50px", targets: 0 },
+                        { width: "150px", targets: 1 },
+                        { width: "250px", targets: 2 },
+                        { width: "130px", targets: 3 },
+                        { width: "120px", targets: 4 },
+                        { width: "100px", targets: 5 },
+                        // Hanya kolom Nama (index 1) yang bisa di-sort
+                        { orderable: false, targets: [0, 2, 3, 4, 5] }
+                    ],
+                    // Pengurutan awal berdasarkan kolom kedua (indeks 1: Nama) secara ASC
+                    order: [[1, 'asc']],
+                    // Kustomisasi bahasa ke Bahasa Indonesia agar user-friendly
+                    language: {
+                        search: "Cari:",
+                        lengthMenu: "Tampilkan _MENU_ pelanggan",
+                        info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ pelanggan",
+                        infoEmpty: "Menampilkan 0 sampai 0 dari 0 pelanggan",
+                        infoFiltered: "(disaring dari _MAX_ total pelanggan)",
+                        zeroRecords: "Tidak ditemukan pelanggan yang cocok",
+                        paginate: {
+                            first: "Pertama",
+                            last: "Terakhir",
+                            next: "Berikutnya",
+                            previous: "Sebelumnya"
+                        }
+                    }
+                });
+            });
+
+            function switchTab(tabName) {
+                // Sembunyikan semua konten tab
+                $('.tab-content').addClass('hidden');
+                
+                // Tampilkan konten tab yang aktif
+                $('#tab-content-' + tabName).removeClass('hidden');
+                
+                // Reset styling tombol navigasi
+                $('#btn-tab-pesanan').removeClass('bg-primary text-on-primary shadow-lg shadow-primary/20')
+                                     .addClass('bg-surface-container-high text-on-surface-variant hover:bg-surface-variant');
+                $('#btn-tab-pelanggan').removeClass('bg-primary text-on-primary shadow-lg shadow-primary/20')
+                                       .addClass('bg-surface-container-high text-on-surface-variant hover:bg-surface-variant');
+                
+                // Aktifkan styling tombol yang terpilih
+                $('#btn-tab-' + tabName).removeClass('bg-surface-container-high text-on-surface-variant hover:bg-surface-variant')
+                                         .addClass('bg-primary text-on-primary shadow-lg shadow-primary/20');
+                
+                // Atur ulang kolom DataTables agar presisi
+                if (tabName === 'pesanan') {
+                    $('#orders-table').DataTable().columns.adjust().draw();
+                } else if (tabName === 'pelanggan') {
+                    $('#customers-table').DataTable().columns.adjust().draw();
+                }
+            }
+
+            // ═══════════ CHART.JS INITIALIZATION ═══════════
+            const chartLabels = <?= json_encode($chart_labels) ?>;
+            const chartOrdersData = <?= json_encode($chart_orders) ?>;
+            const chartRevenueData = <?= json_encode($chart_revenue) ?>;
+
+            // Tren Pesanan - Line Chart
+            new Chart(document.getElementById('ordersChart'), {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Pesanan',
+                        data: chartOrdersData,
+                        borderColor: '#00433a',
+                        backgroundColor: 'rgba(0, 67, 58, 0.08)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#00433a',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1a1c1c',
+                            titleFont: { family: 'Inter', weight: '700' },
+                            bodyFont: { family: 'Inter' },
+                            padding: 12,
+                            cornerRadius: 12,
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ' ' + ctx.parsed.y + ' pesanan';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Inter', size: 12, weight: '600' }, color: '#6f7976' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(111, 121, 118, 0.1)' },
+                            ticks: {
+                                font: { family: 'Inter', size: 12, weight: '600' },
+                                color: '#6f7976',
+                                stepSize: 1,
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Tren Revenue - Line Chart with Area Fill
+            new Chart(document.getElementById('revenueChart'), {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: chartRevenueData,
+                        borderColor: '#865300',
+                        backgroundColor: 'rgba(134, 83, 0, 0.08)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#865300',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1a1c1c',
+                            titleFont: { family: 'Inter', weight: '700' },
+                            bodyFont: { family: 'Inter' },
+                            padding: 12,
+                            cornerRadius: 12,
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ' Rp ' + ctx.parsed.y.toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Inter', size: 12, weight: '600' }, color: '#6f7976' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(111, 121, 118, 0.1)' },
+                            ticks: {
+                                font: { family: 'Inter', size: 12, weight: '600' },
+                                color: '#6f7976',
+                                callback: function(val) {
+                                    if (val >= 1000000) return 'Rp ' + (val / 1000000).toFixed(1) + 'jt';
+                                    if (val >= 1000) return 'Rp ' + (val / 1000).toFixed(0) + 'rb';
+                                    return 'Rp ' + val;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
     <?php endif; ?>
 
 </body>

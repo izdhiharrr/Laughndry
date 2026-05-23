@@ -41,8 +41,29 @@
 
         .cart-list {
             list-style: none;
-            padding: 0;
+            padding: 0 8px 0 0;
             margin: 0 0 24px 0;
+            max-height: 380px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+
+        .cart-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .cart-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .cart-list::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 999px;
+        }
+
+        .cart-list::-webkit-scrollbar-thumb:hover {
+            background-color: #94a3b8;
         }
 
         .cart-list li {
@@ -542,6 +563,163 @@
         .success-btn:hover {
             background: #059669;
         }
+
+        /* Mobile specific styles for Shopee-like cart layout */
+        @media (max-width: 640px) {
+            body {
+                background: #fff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                height: 100vh !important;
+                width: 100vw !important;
+            }
+
+            .cart-container {
+                max-width: 100% !important;
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                padding: 24px 16px 24px 16px !important;
+                box-shadow: none !important;
+                display: flex !important;
+                flex-direction: column !important;
+                box-sizing: border-box !important;
+                overflow: hidden !important;
+            }
+
+            #cart-view {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                min-height: 0;
+                height: 100%;
+                overflow: hidden;
+            }
+
+            #payment-view {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                min-height: 0;
+                overflow: hidden;
+            }
+
+            .payment-content-scroll {
+                flex: 1 !important;
+                overflow-y: auto !important;
+                min-height: 0 !important;
+                margin-bottom: 16px !important;
+                padding-right: 4px !important;
+            }
+
+            .cart-list {
+                flex: 1 !important;
+                overflow-y: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                margin-bottom: 16px !important;
+                padding-right: 4px !important;
+            }
+
+            .cart-total {
+                margin-top: auto; /* Push total and buttons to the bottom */
+                padding-top: 20px;
+                border-top: 1px solid #f3f4f6;
+                margin-bottom: 12px;
+                font-size: 1.2rem;
+                background: #fff;
+            }
+
+            .btn-group {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                margin-top: 8px;
+                padding-bottom: 24px;
+                background: #fff;
+                width: 100%;
+            }
+
+            .btn-group .cart-btn {
+                display: block !important;
+                width: 100% !important;
+                height: auto !important;
+                padding: 14px 0 !important;
+                font-size: 1.05rem !important;
+                font-weight: bold !important;
+                text-align: center !important;
+                box-sizing: border-box !important;
+                border-radius: 999px !important;
+            }
+
+            .cart-list li {
+                display: grid;
+                grid-template-columns: auto 1fr auto;
+                grid-template-rows: auto auto;
+                gap: 8px 12px;
+                padding: 16px 0;
+                align-items: start;
+            }
+
+            .cart-img {
+                grid-row: 1 / span 2;
+                align-self: center;
+            }
+
+            .cart-info {
+                grid-row: 1 / span 2;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                gap: 4px;
+                min-width: 0;
+            }
+
+            .cart-item-title {
+                display: block;
+                font-size: 0.95rem;
+                font-weight: 600;
+                color: #222;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
+            }
+
+            .cart-item-category {
+                font-size: 0.75rem;
+                color: #6b7280;
+                margin-top: 0;
+                font-weight: normal;
+                line-height: 1.25;
+            }
+
+            .cart-price {
+                font-size: 0.95rem;
+                font-weight: bold;
+                color: #f59e0b;
+                margin-top: 2px;
+            }
+
+            .qty-control {
+                grid-column: 3;
+                grid-row: 1;
+                margin-right: 0; /* Remove right margin on mobile */
+                padding: 2px 6px;
+                justify-self: end;
+            }
+
+            .cart-remove {
+                grid-column: 3;
+                grid-row: 2;
+                padding: 2px;
+                margin-top: 4px;
+                justify-self: end;
+                align-self: end;
+            }
+        }
     </style>
 </head>
 
@@ -568,58 +746,60 @@
                 <span class="material-symbols-outlined" style="font-size:2.2rem;">payments</span>
                 Checkout
             </div>
-            <!-- Customer Info Form -->
-            <div class="customer-info-section">
-                <div class="customer-info-title">
-                    <span class="material-symbols-outlined">person</span>
-                    Data Pelanggan
+            <div class="payment-content-scroll">
+                <!-- Customer Info Form -->
+                <div class="customer-info-section">
+                    <div class="customer-info-title">
+                        <span class="material-symbols-outlined">person</span>
+                        Data Pelanggan
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="customer-name">Nama Lengkap</label>
+                        <input type="text" class="form-input" id="customer-name" placeholder="Masukkan nama lengkap Anda">
+                        <div class="input-error-msg" id="error-name">Nama wajib diisi</div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="customer-phone">Nomor Telepon</label>
+                        <input type="tel" class="form-input" id="customer-phone" placeholder="Contoh: 08123456789">
+                        <div class="input-error-msg" id="error-phone">Nomor telepon wajib diisi</div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="customer-address">Alamat</label>
+                        <textarea class="form-input" id="customer-address" placeholder="Masukkan alamat lengkap Anda"
+                            rows="3"></textarea>
+                        <div class="input-error-msg" id="error-address">Alamat wajib diisi</div>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label class="input-label" for="customer-name">Nama Lengkap</label>
-                    <input type="text" class="form-input" id="customer-name" placeholder="Masukkan nama lengkap Anda">
-                    <div class="input-error-msg" id="error-name">Nama wajib diisi</div>
-                </div>
-                <div class="input-group">
-                    <label class="input-label" for="customer-phone">Nomor Telepon</label>
-                    <input type="tel" class="form-input" id="customer-phone" placeholder="Contoh: 08123456789">
-                    <div class="input-error-msg" id="error-phone">Nomor telepon wajib diisi</div>
-                </div>
-                <div class="input-group">
-                    <label class="input-label" for="customer-address">Alamat</label>
-                    <textarea class="form-input" id="customer-address" placeholder="Masukkan alamat lengkap Anda"
-                        rows="3"></textarea>
-                    <div class="input-error-msg" id="error-address">Alamat wajib diisi</div>
-                </div>
-            </div>
 
-            <!-- Pilih Metode Pembayaran -->
-            <div class="customer-info-section">
-                <div class="customer-info-title">
-                    <span class="material-symbols-outlined">payments</span>
-                    Metode Pembayaran
+                <!-- Pilih Metode Pembayaran -->
+                <div class="customer-info-section">
+                    <div class="customer-info-title">
+                        <span class="material-symbols-outlined">payments</span>
+                        Metode Pembayaran
+                    </div>
+                    <div class="payment-methods" style="grid-template-columns: 1fr 1fr;">
+                        <label class="payment-method-card">
+                            <input type="radio" name="checkout_method" value="online" checked>
+                            <div class="card-content">
+                                <span class="material-symbols-outlined icon">credit_card</span>
+                                <span>Bayar Online</span>
+                                <span style="font-size:0.7rem;color:#6b7280;font-weight:400;">QRIS, VA, GoPay, dll</span>
+                            </div>
+                        </label>
+                        <label class="payment-method-card">
+                            <input type="radio" name="checkout_method" value="tunai">
+                            <div class="card-content">
+                                <span class="material-symbols-outlined icon">store</span>
+                                <span>Bayar Tunai</span>
+                                <span style="font-size:0.7rem;color:#6b7280;font-weight:400;">Bayar di outlet</span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
-                <div class="payment-methods" style="grid-template-columns: 1fr 1fr;">
-                    <label class="payment-method-card">
-                        <input type="radio" name="checkout_method" value="online" checked>
-                        <div class="card-content">
-                            <span class="material-symbols-outlined icon">credit_card</span>
-                            <span>Bayar Online</span>
-                            <span style="font-size:0.7rem;color:#6b7280;font-weight:400;">QRIS, VA, GoPay, dll</span>
-                        </div>
-                    </label>
-                    <label class="payment-method-card">
-                        <input type="radio" name="checkout_method" value="tunai">
-                        <div class="card-content">
-                            <span class="material-symbols-outlined icon">store</span>
-                            <span>Bayar Tunai</span>
-                            <span style="font-size:0.7rem;color:#6b7280;font-weight:400;">Bayar di outlet</span>
-                        </div>
-                    </label>
-                </div>
-            </div>
 
-            <div id="payment-summary" class="payment-summary">
-                <!-- Summary inserted via JS -->
+                <div id="payment-summary" class="payment-summary">
+                    <!-- Summary inserted via JS -->
+                </div>
             </div>
 
             <div class="btn-group">
@@ -701,8 +881,8 @@
                         </div>
                         <div class="cart-info">
                             <div class="cart-name">
-                                ${item.name}
-                                ${item.category ? `<span style="display: block; font-size: 0.75rem; color: #6b7280; margin-top: 2px; font-weight: normal;">${item.category}</span>` : ''}
+                                <span class="cart-item-title">${item.name}</span>
+                                ${item.category ? `<span class="cart-item-category" style="display: block; font-size: 0.75rem; color: #6b7280; margin-top: 2px; font-weight: normal;">${item.category}</span>` : ''}
                             </div>
                             <div class="cart-price">Rp ${price.toLocaleString('id-ID')}</div>
                         </div>
@@ -759,13 +939,13 @@
 
         btnCheckout.addEventListener('click', () => {
             cartView.style.display = 'none';
-            paymentView.style.display = 'block';
+            paymentView.style.display = 'flex';
             renderPaymentSummary();
         });
 
         btnBack.addEventListener('click', () => {
             paymentView.style.display = 'none';
-            cartView.style.display = 'block';
+            cartView.style.display = 'flex';
         });
 
         // ═══════════════════════════════════════════
@@ -896,7 +1076,7 @@
             document.getElementById('customer-phone').value = '';
             document.getElementById('customer-address').value = '';
             document.getElementById('payment-view').style.display = 'none';
-            document.getElementById('cart-view').style.display = 'block';
+            document.getElementById('cart-view').style.display = 'flex';
             window.location.href = 'index.php';
         }
 

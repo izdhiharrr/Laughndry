@@ -143,7 +143,7 @@ require_once __DIR__ . '/header.php';
                                     </td>
                                     <td class="py-3 px-4 sm:py-4 sm:px-6 text-right">
                                         <button
-                                            class="add-to-cart bg-primary text-white px-4 py-2 rounded-full hover:bg-primary-dark"
+                                            class="add-to-cart bg-primary text-white px-4 py-2 rounded-full hover:bg-primary-dark whitespace-nowrap inline-flex items-center justify-center"
                                             data-category="<?= htmlspecialchars($category['category']) ?>"
                                             data-name="<?= htmlspecialchars($item['name']) ?>"
                                             data-price="<?= htmlspecialchars($item['price']) ?>"
@@ -158,10 +158,10 @@ require_once __DIR__ . '/header.php';
         <?php endforeach; ?>
 
         <div class="text-center pt-8 pb-12 reveal">
-            <a href="index.php"
+            <a href="#" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;"
                 class="inline-flex items-center gap-3 bg-primary text-on-primary px-8 py-4 rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-xl hover:shadow-2xl">
-                <span class="material-symbols-outlined text-lg">arrow_back</span>
-                Kembali ke Halaman Utama
+                <span class="material-symbols-outlined text-lg">arrow_upward</span>
+                Kembali ke Atas
             </a>
         </div>
     </div>
