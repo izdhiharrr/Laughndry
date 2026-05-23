@@ -589,21 +589,21 @@
                 overflow: hidden !important;
             }
 
-            #cart-view {
-                display: flex;
-                flex-direction: column;
-                flex: 1;
-                min-height: 0;
-                height: 100%;
-                overflow: hidden;
+            #cart-view:not([style*="display: none"]) {
+                display: flex !important;
+                flex-direction: column !important;
+                flex: 1 !important;
+                min-height: 0 !important;
+                height: 100% !important;
+                overflow: hidden !important;
             }
 
-            #payment-view {
-                display: flex;
-                flex-direction: column;
-                flex: 1;
-                min-height: 0;
-                overflow: hidden;
+            #payment-view:not([style*="display: none"]) {
+                display: flex !important;
+                flex-direction: column !important;
+                flex: 1 !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
             }
 
             .payment-content-scroll {
@@ -939,13 +939,13 @@
 
         btnCheckout.addEventListener('click', () => {
             cartView.style.display = 'none';
-            paymentView.style.display = 'flex';
+            paymentView.style.display = 'block';
             renderPaymentSummary();
         });
 
         btnBack.addEventListener('click', () => {
             paymentView.style.display = 'none';
-            cartView.style.display = 'flex';
+            cartView.style.display = 'block';
         });
 
         // ═══════════════════════════════════════════
@@ -1076,7 +1076,7 @@
             document.getElementById('customer-phone').value = '';
             document.getElementById('customer-address').value = '';
             document.getElementById('payment-view').style.display = 'none';
-            document.getElementById('cart-view').style.display = 'flex';
+            document.getElementById('cart-view').style.display = 'block';
             window.location.href = 'index.php';
         }
 
