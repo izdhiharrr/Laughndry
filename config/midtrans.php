@@ -19,9 +19,9 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
 // ═══════════════════════════════════════════
 // Midtrans Sandbox Credentials
 // ═══════════════════════════════════════════
-define('MIDTRANS_SERVER_KEY', $_ENV['MIDTRANS_SERVER_KEY'] ?? 'Mid-server-placeholder');
-define('MIDTRANS_CLIENT_KEY', $_ENV['MIDTRANS_CLIENT_KEY'] ?? 'Mid-client-placeholder');
-define('MIDTRANS_IS_PRODUCTION', filter_var($_ENV['MIDTRANS_IS_PRODUCTION'] ?? false, FILTER_VALIDATE_BOOLEAN));
+define('MIDTRANS_SERVER_KEY', (getenv('MIDTRANS_SERVER_KEY') !== false) ? getenv('MIDTRANS_SERVER_KEY') : ($_ENV['MIDTRANS_SERVER_KEY'] ?? 'Mid-server-placeholder'));
+define('MIDTRANS_CLIENT_KEY', (getenv('MIDTRANS_CLIENT_KEY') !== false) ? getenv('MIDTRANS_CLIENT_KEY') : ($_ENV['MIDTRANS_CLIENT_KEY'] ?? 'Mid-client-placeholder'));
+define('MIDTRANS_IS_PRODUCTION', filter_var((getenv('MIDTRANS_IS_PRODUCTION') !== false) ? getenv('MIDTRANS_IS_PRODUCTION') : ($_ENV['MIDTRANS_IS_PRODUCTION'] ?? false), FILTER_VALIDATE_BOOLEAN));
 
 // URL Endpoints
 define(

@@ -20,10 +20,10 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     }
 }
 
-$db_host = $_ENV['DB_HOST'] ?? 'localhost';
-$db_user = $_ENV['DB_USER'] ?? 'root';
-$db_pass = $_ENV['DB_PASS'] ?? '';
-$db_name = $_ENV['DB_NAME'] ?? 'laughndry_db';
+$db_host = (getenv('DB_HOST') !== false) ? getenv('DB_HOST') : ($_ENV['DB_HOST'] ?? 'localhost');
+$db_user = (getenv('DB_USER') !== false) ? getenv('DB_USER') : ($_ENV['DB_USER'] ?? 'root');
+$db_pass = (getenv('DB_PASS') !== false) ? getenv('DB_PASS') : ($_ENV['DB_PASS'] ?? '');
+$db_name = (getenv('DB_NAME') !== false) ? getenv('DB_NAME') : ($_ENV['DB_NAME'] ?? 'laughndry_db');
 
 // Style untuk halaman
 echo '<!DOCTYPE html>
