@@ -570,8 +570,6 @@
                 background: #fff !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                overflow: hidden !important;
-                height: 100vh !important;
                 width: 100vw !important;
             }
 
