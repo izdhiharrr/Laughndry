@@ -46,6 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
 if (isset($_GET['delete_order'])) {
     $stmt = $pdo->prepare("DELETE FROM orders WHERE id = ?");
     $stmt->execute([$_GET['delete_order']]);
+    if (isset($_GET['ajax'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true]);
+        exit;
+    }
     header("Location: admin.php");
     exit;
 }
@@ -54,6 +59,11 @@ if (isset($_GET['delete_order'])) {
 if (isset($_GET['delete_customer'])) {
     $stmt = $pdo->prepare("DELETE FROM customers WHERE id = ?");
     $stmt->execute([$_GET['delete_customer']]);
+    if (isset($_GET['ajax'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true]);
+        exit;
+    }
     header("Location: admin.php");
     exit;
 }
@@ -668,12 +678,12 @@ if ($is_admin) {
                                                         </form>
                                                     </td>
                                                     <td class="p-4 text-center">
-                                                        <a href="?delete_order=<?= $order['id'] ?>"
-                                                            onclick="return confirm('Yakin hapus pesanan #<?= $order['id'] ?>?')"
-                                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors">
-                                                            <span class="material-symbols-outlined text-base">delete</span>
-                                                        </a>
-                                                    </td>
+                                                         <button type="button"
+                                                             onclick="deleteOrder(<?= $order['id'] ?>, this)"
+                                                             class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors">
+                                                             <span class="material-symbols-outlined text-base">delete</span>
+                                                         </button>
+                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
@@ -743,12 +753,12 @@ if ($is_admin) {
                                                     <td class="p-4 text-on-surface-variant text-sm whitespace-normal" style="width: 120px; min-width: 120px; max-width: 120px;">
                                                         <?= date('d M Y', strtotime($cust['created_at'])) ?></td>
                                                     <td class="p-4 text-center" style="width: 100px; min-width: 100px; max-width: 100px;">
-                                                        <a href="?delete_customer=<?= $cust['id'] ?>"
-                                                            onclick="return confirm('Yakin hapus pelanggan <?= htmlspecialchars($cust['nama']) ?>? Semua pesanannya juga akan terhapus.')"
-                                                            class="px-4 py-2 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors inline-flex items-center gap-1">
-                                                            <span class="material-symbols-outlined text-base">delete</span> Delete
-                                                        </a>
-                                                    </td>
+                                                         <button type="button"
+                                                             onclick="deleteCustomer(<?= $cust['id'] ?>, '<?= htmlspecialchars($cust['nama'], ENT_QUOTES) ?>', this)"
+                                                             class="px-4 py-2 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors inline-flex items-center gap-1">
+                                                             <span class="material-symbols-outlined text-base">delete</span> Delete
+                                                         </button>
+                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
@@ -768,21 +778,6 @@ if ($is_admin) {
 
         <script>
             $(document).ready(function() {
-                // Restore active tab
-                const activeTab = localStorage.getItem('admin_active_tab');
-                if (activeTab && (activeTab === 'pesanan' || activeTab === 'pelanggan')) {
-                    switchTab(activeTab);
-                }
-
-                // Restore scroll position
-                const scrollPos = localStorage.getItem('admin_scroll_pos');
-                if (scrollPos) {
-                    setTimeout(() => {
-                        window.scrollTo(0, parseInt(scrollPos, 10));
-                        localStorage.removeItem('admin_scroll_pos');
-                    }, 150); // slight delay to let elements settle
-                }
-
                 $('#orders-table').DataTable({
                     scrollX: true,
                     autoWidth: false,
@@ -845,9 +840,6 @@ if ($is_admin) {
             });
 
             function switchTab(tabName) {
-                // Simpan tab yang aktif ke localStorage
-                localStorage.setItem('admin_active_tab', tabName);
-
                 // Sembunyikan semua konten tab
                 $('.tab-content').addClass('hidden');
                 
@@ -993,10 +985,59 @@ if ($is_admin) {
                     }
                 }
             });
-            // Save scroll position before reload/unload
-            window.addEventListener('beforeunload', () => {
-                localStorage.setItem('admin_scroll_pos', window.scrollY);
-            });
+
+            // ═══════════ AJAX DELETE FUNCTIONS (NO PAGE RELOAD) ═══════════
+            function deleteOrder(orderId, btnElement) {
+                if (!confirm('Yakin hapus pesanan #' + orderId + '?')) {
+                    return;
+                }
+                
+                btnElement.disabled = true;
+                
+                fetch('admin.php?delete_order=' + orderId + '&ajax=1')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            const table = $('#orders-table').DataTable();
+                            const row = $(btnElement).closest('tr');
+                            table.row(row).remove().draw(false);
+                        } else {
+                            alert('Gagal menghapus: ' + (data.message || 'Unknown error'));
+                            btnElement.disabled = false;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Terjadi kesalahan jaringan.');
+                        btnElement.disabled = false;
+                    });
+            }
+
+            function deleteCustomer(customerId, customerName, btnElement) {
+                if (!confirm('Yakin hapus pelanggan ' + customerName + '? Semua pesanannya juga akan terhapus.')) {
+                    return;
+                }
+                
+                btnElement.disabled = true;
+                
+                fetch('admin.php?delete_customer=' + customerId + '&ajax=1')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            const table = $('#customers-table').DataTable();
+                            const row = $(btnElement).closest('tr');
+                            table.row(row).remove().draw(false);
+                        } else {
+                            alert('Gagal menghapus: ' + (data.message || 'Unknown error'));
+                            btnElement.disabled = false;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Terjadi kesalahan jaringan.');
+                        btnElement.disabled = false;
+                    });
+            }
         </script>
     <?php endif; ?>
 
