@@ -987,18 +987,24 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ...checkoutData, payment_type: 'tunai', is_tunai: true })
                 })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.success) {
-                            document.getElementById('success-title').innerText = 'Pesanan Sedang Diproses';
-                            document.getElementById('success-message-text').innerText = 'Pesanan Anda telah kami catat dan masuk ke dalam antrean. Silakan bawa pakaian Anda ke outlet atau driver kami dan lakukan pembayaran tunai.';
-                            document.getElementById('success-icon').style.background = '#FBAD48';
-                            document.getElementById('success-icon').style.boxShadow = '0 0 0 10px rgba(251, 173, 72, 0.2)';
-                            document.getElementById('success-icon-symbol').innerText = 'hourglass_empty';
-                            document.getElementById('success-btn').style.background = '#FBAD48';
-                            document.getElementById('success-modal').classList.add('show');
-                        } else {
-                            alert('Gagal menyimpan pesanan: ' + data.message);
+                    .then(r => r.text())
+                    .then(text => {
+                        try {
+                            const data = JSON.parse(text);
+                            if (data.success) {
+                                document.getElementById('success-title').innerText = 'Pesanan Sedang Diproses';
+                                document.getElementById('success-message-text').innerText = 'Pesanan Anda telah kami catat dan masuk ke dalam antrean. Silakan bawa pakaian Anda ke outlet atau driver kami dan lakukan pembayaran tunai.';
+                                document.getElementById('success-icon').style.background = '#FBAD48';
+                                document.getElementById('success-icon').style.boxShadow = '0 0 0 10px rgba(251, 173, 72, 0.2)';
+                                document.getElementById('success-icon-symbol').innerText = 'hourglass_empty';
+                                document.getElementById('success-btn').style.background = '#FBAD48';
+                                document.getElementById('success-modal').classList.add('show');
+                            } else {
+                                alert('Gagal menyimpan pesanan: ' + data.message);
+                            }
+                        } catch (e) {
+                            console.error('Non-JSON response:', text);
+                            alert('Server Error: ' + text.substring(0, 300));
                         }
                     })
                     .catch(err => {
@@ -1032,13 +1038,19 @@
                                             midtrans_order_id: data.midtrans_order_id
                                         })
                                     })
-                                        .then(r => r.json())
-                                        .then(saveResult => {
-                                            if (saveResult.success) {
-                                                document.getElementById('success-message-text').innerText = 'Pembayaran online berhasil! Terima kasih telah mempercayakan cucian Anda kepada Laughndry. Kurir kami akan segera menjemput pakaian Anda.';
-                                                document.getElementById('success-modal').classList.add('show');
-                                            } else {
-                                                alert('Pembayaran berhasil, tapi gagal menyimpan: ' + saveResult.message);
+                                        .then(r => r.text())
+                                        .then(text => {
+                                            try {
+                                                const saveResult = JSON.parse(text);
+                                                if (saveResult.success) {
+                                                    document.getElementById('success-message-text').innerText = 'Pembayaran online berhasil! Terima kasih telah mempercayakan cucian Anda kepada Laughndry. Kurir kami akan segera menjemput pakaian Anda.';
+                                                    document.getElementById('success-modal').classList.add('show');
+                                                } else {
+                                                    alert('Pembayaran berhasil, tapi gagal menyimpan: ' + saveResult.message);
+                                                }
+                                            } catch (e) {
+                                                console.error('Non-JSON response:', text);
+                                                alert('Pembayaran berhasil, tetapi terjadi error server saat menyimpan: ' + text.substring(0, 300));
                                             }
                                         })
                                         .catch(err => {
