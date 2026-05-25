@@ -111,7 +111,7 @@ try {
         'total_harga' => $total_harga,
     ]);
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }

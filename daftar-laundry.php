@@ -1001,7 +1001,10 @@
                             alert('Gagal menyimpan pesanan: ' + data.message);
                         }
                     })
-                    .catch(() => alert('Terjadi kesalahan jaringan. Coba lagi.'))
+                    .catch(err => {
+                        console.error('Cash checkout error:', err);
+                        alert('Terjadi kesalahan jaringan atau server. Coba lagi.');
+                    })
                     .finally(() => {
                         btnConfirm.disabled = false;
                         btnConfirm.textContent = 'Bayar Sekarang';
@@ -1037,6 +1040,10 @@
                                             } else {
                                                 alert('Pembayaran berhasil, tapi gagal menyimpan: ' + saveResult.message);
                                             }
+                                        })
+                                        .catch(err => {
+                                            console.error('Save order error:', err);
+                                            alert('Pembayaran berhasil, tetapi terjadi kesalahan jaringan saat menyimpan pesanan. Silakan hubungi admin.');
                                         });
                                 },
                                 onPending: function (result) {
