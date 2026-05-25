@@ -9,10 +9,21 @@
  * 4. HAPUS file ini setelah selesai setup (demi keamanan)
  */
 
-$db_host = 'localhost';
-$db_user = 'root';
-$db_pass = '';
-$db_name = 'laughndry_db';
+// Load autoloader dan dotenv jika tersedia
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+    
+    // Inisialisasi dotenv jika file .env ada
+    if (file_exists(__DIR__ . '/.env')) {
+        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+        $dotenv->safeLoad();
+    }
+}
+
+$db_host = $_ENV['DB_HOST'] ?? 'localhost';
+$db_user = $_ENV['DB_USER'] ?? 'root';
+$db_pass = $_ENV['DB_PASS'] ?? '';
+$db_name = $_ENV['DB_NAME'] ?? 'laughndry_db';
 
 // Style untuk halaman
 echo '<!DOCTYPE html>
