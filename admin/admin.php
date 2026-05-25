@@ -768,6 +768,21 @@ if ($is_admin) {
 
         <script>
             $(document).ready(function() {
+                // Restore active tab
+                const activeTab = localStorage.getItem('admin_active_tab');
+                if (activeTab && (activeTab === 'pesanan' || activeTab === 'pelanggan')) {
+                    switchTab(activeTab);
+                }
+
+                // Restore scroll position
+                const scrollPos = localStorage.getItem('admin_scroll_pos');
+                if (scrollPos) {
+                    setTimeout(() => {
+                        window.scrollTo(0, parseInt(scrollPos, 10));
+                        localStorage.removeItem('admin_scroll_pos');
+                    }, 150); // slight delay to let elements settle
+                }
+
                 $('#orders-table').DataTable({
                     scrollX: true,
                     autoWidth: false,
@@ -830,6 +845,9 @@ if ($is_admin) {
             });
 
             function switchTab(tabName) {
+                // Simpan tab yang aktif ke localStorage
+                localStorage.setItem('admin_active_tab', tabName);
+
                 // Sembunyikan semua konten tab
                 $('.tab-content').addClass('hidden');
                 
@@ -974,6 +992,10 @@ if ($is_admin) {
                         }
                     }
                 }
+            });
+            // Save scroll position before reload/unload
+            window.addEventListener('beforeunload', () => {
+                localStorage.setItem('admin_scroll_pos', window.scrollY);
             });
         </script>
     <?php endif; ?>
