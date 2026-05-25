@@ -135,8 +135,8 @@ try {
     logStep('success', 'Berhasil terhubung ke MySQL');
     $success_count++;
 } catch (PDOException $e) {
-    logStep('error', 'Gagal terhubung ke MySQL: ' . $e->getMessage());
-    echo '<div class="summary fail">Setup gagal. Pastikan MySQL sudah berjalan di XAMPP!</div>';
+    logStep('error', 'Gagal terhubung ke MySQL: ' . $e->getMessage() . '<br><br><span style="font-size:0.85rem;color:#854d0e;background:#fef9c3;padding:8px 12px;border-radius:8px;display:inline-block;border:1px solid #fef08a;">🔎 <b>Info Terdeteksi di Server:</b><br>Host: <code>' . htmlspecialchars($db_host) . '</code><br>User: <code>' . htmlspecialchars($db_user) . '</code><br>Database: <code>' . htmlspecialchars($db_name) . '</code></span>');
+    echo '<div class="summary fail">Setup gagal. Pastikan detail variabel database di Railway sudah benar!</div>';
     echo '</div></body></html>';
     exit;
 }
