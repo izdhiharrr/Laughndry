@@ -18,6 +18,7 @@ $order_href = $is_harga ? 'index.php#layanan' : '#layanan';
     <title>Laughndry — Premium Laundry Service</title>
     <meta name="description"
         content="Laughndry, layanan laundry premium dengan teknologi terkini dan keharuman tahan lama. Praktis, cepat, dan harga terjangkau." />
+    <meta name="google-site-verification" content="jrjv_8cdl7wdbPUNrrJ4XasTYkSmvF_5y_8pez5ppBY" />
 
     <!-- Tailwind CDN (with forms & container-queries plugins) -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
