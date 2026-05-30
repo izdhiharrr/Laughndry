@@ -15,9 +15,9 @@ $order_href = $is_harga ? 'index.php#layanan' : '#layanan';
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Laughndry — Premium Laundry Service</title>
+    <title>Laughndry — Laundry Coin Terbaik</title>
     <meta name="description"
-        content="Laughndry, layanan laundry premium dengan teknologi terkini dan keharuman tahan lama. Praktis, cepat, dan harga terjangkau." />
+        content="Laughndry, Laundry terdekat di Serpong yang buka 24 jam Setiap Hari untuk memenuhi kebutuhan Anda. Kami menawarkan proses pengerjaan cepat dengan hasil cucian yang dijamin bersih maksimal serta wangi tahan lama. Nikmati kepraktisan merawat pakaian Anda dengan harga yang terjangkau." />
     <meta name="google-site-verification" content="jrjv_8cdl7wdbPUNrrJ4XasTYkSmvF_5y_8pez5ppBY" />
 
     <!-- Tailwind CDN (with forms & container-queries plugins) -->

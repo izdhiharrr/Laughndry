@@ -5,4 +5,4 @@ Disallow: /config/
 Disallow: /vendor/
 Disallow: /setup_database.php
 
-Sitemap: https://laughndry-production-61a7.up.railway.app/sitemap.xml
+Sitemap: https://laughndry.my.id/sitemap.xml
