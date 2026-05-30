@@ -1,4 +1,10 @@
-<?php require_once __DIR__ . '/config/midtrans.php'; ?>
+<?php
+if (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'laughndry-production-6a17.up.railway.app') {
+    header("Location: https://laughndry.my.id" . $_SERVER['REQUEST_URI'], true, 301);
+    exit;
+}
+require_once __DIR__ . '/config/midtrans.php';
+?>
 <!DOCTYPE html>
 <html lang="id">
 

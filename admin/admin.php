@@ -1,4 +1,8 @@
 <?php
+if (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'laughndry-production-6a17.up.railway.app') {
+    header("Location: https://laughndry.my.id" . $_SERVER['REQUEST_URI'], true, 301);
+    exit;
+}
 /**
  * admin.php — Halaman Admin
  * Terhubung ke database laughndry_db untuk data real.
