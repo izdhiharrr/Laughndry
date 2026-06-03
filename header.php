@@ -31,6 +31,51 @@ $order_href = $is_harga ? 'index.php#layanan' : '#layanan';
         content="Laughndry, Laundry terdekat di Serpong yang buka 24 jam Setiap Hari untuk memenuhi kebutuhan Anda. Kami menawarkan proses pengerjaan cepat dengan hasil cucian yang dijamin bersih maksimal serta wangi tahan lama. Nikmati kepraktisan merawat pakaian Anda dengan harga yang terjangkau." />
     <meta name="google-site-verification" content="jrjv_8cdl7wdbPUNrrJ4XasTYkSmvF_5y_8pez5ppBY" />
 
+    <!-- Schema Markup (Structured Data) for LocalBusiness SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "LAUGHNDRY Coin Laundry",
+      "image": "https://laughndry.my.id/assets/gambar/LOGO.png",
+      "@id": "https://laughndry.my.id/#localbusiness",
+      "url": "https://laughndry.my.id/",
+      "telephone": "+6285220966656",
+      "priceRange": "$$",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Jl. Raya Puspitek No 18b, Kel. Buaran, Kec. Serpong",
+        "addressLocality": "Tangerang Selatan",
+        "addressRegion": "Banten",
+        "postalCode": "15310",
+        "addressCountry": "ID"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": -6.3473207,
+        "longitude": 106.7030201
+      },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ],
+        "opens": "00:00",
+        "closes": "23:59"
+      },
+      "sameAs": [
+        "https://instagram.com/laughndry",
+        "https://www.google.com/maps/place/LAUGHNDRY+Coin+Laundry/@-6.3473207,106.7004452,17z/data=!3m1!4b1!4m6!3m5!1s0x2e69e5017ad7bcfb:0xc6b784300ba9876a!8m2!3d-6.3473207!4d106.7030201!16s%2Fg%2F11whq56xpz"
+      ]
+    }
+    </script>
+
     <!-- Tailwind CDN (with forms & container-queries plugins) -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
