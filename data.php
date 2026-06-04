@@ -276,7 +276,7 @@ $full_price_list = [
 
 // ─── Contact Info ───────────────────────────────────────────────────────────
 $contact_info = [
-    ['icon' => 'phone', 'text' => '+62 852-2096-6656', 'href' => 'https://wa.me/6285220966656'],
+    ['icon' => 'phone', 'text' => '+62 852-2096-6656', 'href' => 'https://wa.me/6285220966656?text=Halo%20Admin,%20Saya%20ingin%20bertanya%20mengenai%20layanan%20laundry'],
     ['icon' => 'mail', 'text' => 'laughndry@gmail.com', 'href' => ''],
     ['icon' => 'svg:instagram', 'text' => '@laughndry', 'href' => 'https://instagram.com/laughndry'],
     ['icon' => 'schedule', 'text' => 'Buka 24 Jam', 'href' => ''],

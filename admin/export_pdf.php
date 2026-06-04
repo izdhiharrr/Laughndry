@@ -146,6 +146,20 @@ $dompdf->loadHtml($html);
 $dompdf->setPaper('A4', 'portrait');
 $dompdf->render();
 
-// Output PDF (Download)
-$filename = 'Laporan_Laughndry_' . ucfirst($period) . '_' . date('Ymd_His') . '.pdf';
+// Indonesian Month Helper
+$bulan_indo = [
+    1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+    7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+];
+$nama_bulan = $bulan_indo[(int)date('m')];
+$tahun = date('Y');
+
+if ($period === 'monthly') {
+    $filename = 'Laporan_Laughndry_Bulan_' . $nama_bulan . '_' . $tahun . '.pdf';
+} elseif ($period === 'yearly') {
+    $filename = 'Laporan_Laughndry_Tahun_' . $tahun . '.pdf';
+} else {
+    $filename = 'Laporan_Laughndry_Semua_Waktu_' . date('Ymd') . '.pdf';
+}
+
 $dompdf->stream($filename, ["Attachment" => true]);

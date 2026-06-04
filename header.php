@@ -20,7 +20,7 @@ $order_href = $is_harga ? 'index.php#layanan' : '#layanan';
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Laughndry — Laundry Coin Terbaik</title>
-    <link rel="icon" type="image/png" href="assets/gambar/LOGO.png?v=2" />
+    <link rel="icon" type="image/x-icon" href="/assets/gambar/LOGO.ico" />
     <?php
     $canonical_domain = "https://laughndry.my.id";
     $current_script = basename($_SERVER['SCRIPT_NAME']);

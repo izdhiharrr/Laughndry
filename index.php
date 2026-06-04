@@ -49,7 +49,7 @@ require_once __DIR__ . '/header.php';
         </p>
 
         <div class="flex flex-wrap items-center gap-4 hero-text-animate-delay-3">
-            <a href="https://wa.me/6285220966656" target="_blank"
+            <a href="https://wa.me/6285220966656?text=Halo%20Admin,%20Saya%20ingin%20bertanya%20mengenai%20layanan%20laundry" target="_blank"
                 class="inline-flex items-center gap-2 bg-[#035D51] text-white px-6 py-3 sm:px-7 sm:py-3.5 rounded-full font-black text-base shadow-xl shadow-[#035D51]/20 hover:scale-105 active:scale-95 transition-all">
                 <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
                     <path
