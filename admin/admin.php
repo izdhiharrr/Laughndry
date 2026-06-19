@@ -432,6 +432,15 @@ if ($is_admin) {
                 gap: 0.25rem !important;
             }
         }
+        
+        /* Hide scrollbars for charts slider on mobile */
+        .chart-slider::-webkit-scrollbar {
+            display: none;
+        }
+        .chart-slider {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
 
@@ -554,8 +563,8 @@ if ($is_admin) {
                 </div>
 
                 <!-- ═══════════ CHART CARDS ═══════════ -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-12">
-                    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-6 mb-12 chart-slider md:grid md:grid-cols-2 pb-4 md:pb-0">
+                    <div class="flex-shrink-0 w-[88%] snap-center bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 md:w-auto md:flex-shrink md:snap-none">
                         <div class="flex items-center gap-3 mb-4">
                             <div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center">
                                 <span class="material-symbols-outlined text-primary text-xl">trending_up</span>
@@ -569,7 +578,7 @@ if ($is_admin) {
                             <canvas id="ordersChart"></canvas>
                         </div>
                     </div>
-                    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                    <div class="flex-shrink-0 w-[88%] snap-center bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 md:w-auto md:flex-shrink md:snap-none">
                         <div class="flex items-center gap-3 mb-4">
                             <div class="w-10 h-10 bg-secondary-fixed rounded-full flex items-center justify-center">
                                 <span class="material-symbols-outlined text-secondary text-xl">payments</span>
