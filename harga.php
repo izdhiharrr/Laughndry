@@ -178,7 +178,7 @@ require_once __DIR__ . '/header.php';
                             <p class="text-xs sm:text-sm text-on-surface-variant mt-1"><?= $category['desc'] ?></p>
                         <?php endif; ?>
                     </div>
-                    <div class="flex items-center justify-center w-10 h-10 rounded-full bg-surface-container/50 text-primary group-hover:bg-primary group-hover:text-on-primary transition-all duration-300 transform" id="arrow-<?= htmlspecialchars($cat_id) ?>">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full bg-surface-container/50 text-primary group-hover:bg-primary group-hover:text-on-primary transition-all duration-300 transform shrink-0" id="arrow-<?= htmlspecialchars($cat_id) ?>">
                         <span class="material-symbols-outlined text-2xl transition-transform duration-300">keyboard_arrow_down</span>
                     </div>
                 </div>
