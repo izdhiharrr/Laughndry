@@ -82,7 +82,7 @@ $payment_type       = $status_response['payment_type'] ?? '';
 // ═══════════════════════════════════════════
 try {
     // Cari order berdasarkan midtrans_order_id
-    $stmt = $pdo->prepare("SELECT id, status FROM orders WHERE midtrans_order_id = ?");
+    $stmt = $pdo->prepare("SELECT id, status FROM `order` WHERE midtrans_order_id = ?");
     $stmt->execute([$order_id]);
     $order = $stmt->fetch();
 
@@ -113,7 +113,7 @@ try {
 
     if ($new_status !== null) {
         $stmt = $pdo->prepare("
-            UPDATE orders SET status = ?, metode_bayar = ?, payment_status = ?, updated_at = NOW() 
+            UPDATE `order` SET status = ?, metode_bayar = ?, payment_status = ?, updated_at = NOW() 
             WHERE midtrans_order_id = ?
         ");
         $stmt->execute([$new_status, $new_metode, $transaction_status, $order_id]);

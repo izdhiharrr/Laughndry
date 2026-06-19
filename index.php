@@ -1,31 +1,6 @@
 <?php
-/**
- * ═══════════════════════════════════════════════════════════════
- * index.php — Laughndry Landing Page (Main Entry)
- * ═══════════════════════════════════════════════════════════════
- *
- * HOW TO RUN:
- * 1. Place the entire "Laughndry" folder inside your XAMPP htdocs directory.
- * 2. Start Apache from the XAMPP Control Panel.
- * 3. Open http://localhost/Laughndry/ in your browser.
- *
- * FILE STRUCTURE:
- *   Laughndry/
- *   ├── index.php      ← This file (main page)
- *   ├── header.php      ← Reusable <head>, navbar
- *   ├── footer.php      ← Reusable footer, CTA, scripts
- *   ├── data.php        ← All dynamic content arrays
- *   └── style.css       ← Custom animations & styles
- */
-
-/*tes*/
-/*tes*/
-
-
-// Load all data arrays
 require_once __DIR__ . '/data.php';
 
-// Render the header (doctype, head, navbar)
 require_once __DIR__ . '/header.php';
 ?>
 
@@ -174,6 +149,8 @@ require_once __DIR__ . '/header.php';
     </div>
 </section>
 
+
+
 <!-- ═══════════════════════════ FAQ SECTION ═══════════════════════════ -->
 <section class="py-16 sm:py-24 bg-surface-container-low" id="faq">
     <div class="max-w-4xl mx-auto px-4 sm:px-8">
@@ -201,9 +178,267 @@ require_once __DIR__ . '/header.php';
                 </div>
             <?php endforeach; ?>
         </div>
+        </div>
     </div>
 </section>
 
+<!-- ═══════════════════════════ TRACKING SECTION ═══════════════════════════ -->
+<section class="py-16 sm:py-24 bg-surface border-t border-outline-variant/15 reveal" id="lacak">
+    <div class="max-w-4xl mx-auto px-4 sm:px-8">
+        <div class="text-center mb-12">
+            <span class="text-secondary-container font-black tracking-[0.2em] text-sm mb-4 block">LACAK STATUS</span>
+            <h2 class="text-3xl sm:text-4xl font-black text-primary">Lacak Cucian Anda</h2>
+            <p class="text-on-surface-variant mt-2 max-w-md mx-auto text-sm sm:text-base">Pantau status laundry secara real-time hanya dengan memasukkan nomor telepon Anda.</p>
+        </div>
+
+        <!-- Form Lacak -->
+        <div class="bg-surface-container-low p-6 sm:p-8 rounded-[2.5rem] border border-outline-variant/20 shadow-sm mb-12 max-w-2xl mx-auto">
+            <form onsubmit="trackOrder(event)" class="flex flex-col sm:flex-row gap-4">
+                <div class="flex-1 relative">
+                    <span class="material-symbols-outlined text-outline absolute left-5 top-1/2 -translate-y-1/2">phone</span>
+                    <input type="tel" id="track-phone" placeholder="Contoh: 081234567890" required
+                        class="w-full bg-surface-container-lowest border-2 border-outline-variant/30 rounded-full pl-12 pr-6 py-4 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-base font-semibold text-on-surface">
+                </div>
+                <button type="submit" id="track-submit-btn"
+                    class="bg-primary text-on-primary px-8 py-4 rounded-full font-black text-base hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined">search</span> Lacak Pesanan
+                </button>
+            </form>
+        </div>
+
+        <!-- Container Hasil Lacak -->
+        <div id="track-result" class="hidden max-w-2xl mx-auto">
+            <!-- Result items will go here dynamically -->
+        </div>
+
+        <!-- CSS tambahan untuk menyembunyikan scrollbar pada filter tab -->
+        <style>
+            #order-tabs::-webkit-scrollbar {
+                display: none;
+            }
+        </style>
+    </div>
+</section>
+
+<script>
+function trackOrder(event) {
+    event.preventDefault();
+    const phoneInput = document.getElementById('track-phone');
+    const phoneVal = phoneInput.value.trim();
+    const resultDiv = document.getElementById('track-result');
+    const submitBtn = document.getElementById('track-submit-btn');
+
+    if (!phoneVal) return;
+
+    // Tampilkan loader
+    resultDiv.classList.remove('hidden');
+    resultDiv.innerHTML = `
+        <div class="py-16 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p class="text-sm text-on-surface-variant font-bold">Sedang mencari data pesanan...</p>
+        </div>
+    `;
+
+    // Disable button sementara
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+
+    // Ambil data dari API
+    fetch('api/track_order.php?telepon=' + encodeURIComponent(phoneVal))
+        .then(res => res.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+
+            if (!data.success) {
+                resultDiv.innerHTML = `
+                    <div class="bg-error-container text-on-error-container p-6 rounded-[2rem] border border-error/15 text-center font-bold">
+                        <span class="material-symbols-outlined text-3xl mb-2 block">error</span>
+                        ${data.message || 'Gagal melacak pesanan.'}
+                    </div>
+                `;
+                return;
+            }
+
+            if (!data.orders || data.orders.length === 0) {
+                resultDiv.innerHTML = `
+                    <div class="bg-surface-container-low p-10 rounded-[2.5rem] border border-outline-variant/10 text-center">
+                        <span class="material-symbols-outlined text-4xl text-on-surface-variant/80 mb-3 block">search_off</span>
+                        <p class="font-black text-primary text-xl mb-1">Pesanan Tidak Ditemukan</p>
+                        <p class="text-sm text-on-surface-variant leading-relaxed">Nomor telepon belum terdaftar atau Anda tidak memiliki riwayat pesanan.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Hitung jumlah pesanan per kategori status
+            let countAll = data.orders.length;
+            let countPending = data.orders.filter(o => o.status === 'pending').length;
+            let countDiproses = data.orders.filter(o => o.status === 'diproses').length;
+            let countCuci = data.orders.filter(o => o.status === 'cuci').length;
+            let countSetrika = data.orders.filter(o => o.status === 'setrika').length;
+            let countSelesai = data.orders.filter(o => o.status === 'selesai').length;
+            let countSiapDiambil = data.orders.filter(o => o.status === 'siap diambil').length;
+            let countSudahDiambil = data.orders.filter(o => o.status === 'sudah diambil').length;
+
+            // Tampilkan daftar pesanan dengan filter Tab
+            let htmlContent = `
+                <div class="flex justify-between items-center mb-4 px-2">
+                    <h3 class="text-lg font-black text-primary flex items-center gap-2">
+                        <span class="material-symbols-outlined">history</span> Riwayat Pesanan Anda
+                    </h3>
+                </div>
+                
+                <!-- Tab Filters (Horizontal Scrollable on Mobile) -->
+                <div class="flex overflow-x-auto justify-start md:justify-center gap-2 mb-6 pb-2" id="order-tabs" style="scrollbar-width: none; -ms-overflow-style: none;">
+                    <button onclick="filterOrders('all')" id="tab-all" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-[#035D51] text-white shadow-md shadow-[#035D51]/20 shrink-0">Semua (${countAll})</button>
+                    <button onclick="filterOrders('pending')" id="tab-pending" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Pending (${countPending})</button>
+                    <button onclick="filterOrders('diproses')" id="tab-diproses" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Diproses (${countDiproses})</button>
+                    <button onclick="filterOrders('cuci')" id="tab-cuci" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Cuci (${countCuci})</button>
+                    <button onclick="filterOrders('setrika')" id="tab-setrika" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Setrika (${countSetrika})</button>
+                    <button onclick="filterOrders('selesai')" id="tab-selesai" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Selesai (${countSelesai})</button>
+                    <button onclick="filterOrders('siap diambil')" id="tab-siap-diambil" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Siap Diambil (${countSiapDiambil})</button>
+                    <button onclick="filterOrders('sudah diambil')" id="tab-sudah-diambil" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Sudah Diambil (${countSudahDiambil})</button>
+                </div>
+                
+                <div class="flex flex-col gap-6">`;
+
+            data.orders.forEach(order => {
+                // Konfigurasi badge status
+                const statusColors = {
+                    'pending': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                    'diproses': 'bg-blue-100 text-blue-800 border-blue-200',
+                    'cuci': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+                    'setrika': 'bg-amber-100 text-amber-800 border-amber-200',
+                    'selesai': 'bg-green-100 text-green-800 border-green-200',
+                    'siap diambil': 'bg-purple-100 text-purple-800 border-purple-200',
+                    'sudah diambil': 'bg-zinc-100 text-zinc-600 border-zinc-200',
+                };
+                const badgeClass = statusColors[order.status] || 'bg-zinc-100 text-zinc-600 border-zinc-200';
+                
+                // Formulasi harga rupiah
+                const formattedHarga = 'Rp ' + parseInt(order.total_harga).toLocaleString('id-ID');
+                
+                // Formulasi tanggal Indonesia
+                const orderDate = new Date(order.created_at);
+                const formattedDate = orderDate.toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                htmlContent += `
+                    <div class="order-card bg-surface-container-lowest p-6 sm:p-8 rounded-[2.5rem] border border-outline-variant/10 shadow-sm flex flex-col gap-5 hover:shadow-md transition-all duration-300" data-group="${order.status}">
+                        <!-- Header Card: ID Pesanan & Tanggal -->
+                        <div class="flex flex-wrap justify-between items-center gap-2 pb-4 border-b border-outline-variant/10">
+                            <div>
+                                <span class="text-sm font-black text-primary block">ORDER ID #${order.id}</span>
+                                <span class="text-xs text-on-surface-variant/70 font-semibold block mt-0.5">${formattedDate}</span>
+                            </div>
+                            <span class="text-xs font-black px-3.5 py-1.5 rounded-full border ${badgeClass} uppercase tracking-wider">
+                                ${order.status}
+                            </span>
+                        </div>
+
+                        <!-- Body Card: Pelanggan, Jenis Layanan & Detail Pesanan -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div class="flex flex-col gap-1">
+                                <span class="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-wider">Pelanggan</span>
+                                <span class="font-bold text-on-surface">${order.customer_nama}</span>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <span class="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-wider">Jenis Layanan</span>
+                                <span class="font-bold text-primary">${order.kategori_list || '-'}</span>
+                            </div>
+                            <div class="md:col-span-2 flex flex-col gap-1 mt-1">
+                                <span class="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-wider">Detail Item Pesanan</span>
+                                <p class="text-on-surface-variant font-medium bg-surface-container-low/50 p-3.5 rounded-2xl border border-outline-variant/5 text-xs leading-relaxed">${order.item_list || '-'}</p>
+                            </div>
+                        </div>
+
+                        <!-- Footer Card: Qty & Total Harga -->
+                        <div class="flex justify-between items-center pt-4 border-t border-outline-variant/10 mt-1">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-wider">Total Item (Qty)</span>
+                                <span class="font-bold text-on-surface">${order.total_qty || 0} Pcs/Kg</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-wider block">Harga Total</span>
+                                <span class="text-lg font-black text-secondary">${formattedHarga}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            htmlContent += `
+                </div>
+                <!-- Empty state for tabs -->
+                <div id="tab-empty-state" class="hidden bg-surface-container-low p-10 rounded-[2.5rem] border border-outline-variant/10 text-center my-6">
+                    <span class="material-symbols-outlined text-4xl text-on-surface-variant/80 mb-3 block">history_toggle_off</span>
+                    <p class="font-black text-primary text-xl mb-1">Tidak Ada Pesanan</p>
+                    <p class="text-sm text-on-surface-variant leading-relaxed" id="tab-empty-text">Tidak ada pesanan di kategori ini.</p>
+                </div>
+            `;
+            
+            // Definisikan fungsi filter global
+            window.filterOrders = function(group) {
+                const tabs = ['all', 'pending', 'diproses', 'cuci', 'setrika', 'selesai', 'siap diambil', 'sudah diambil'];
+                
+                // Reset styling semua tab
+                tabs.forEach(t => {
+                    const tabId = 'tab-' + t.replace(' ', '-');
+                    const tab = document.getElementById(tabId);
+                    if (tab) {
+                        tab.className = "px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0";
+                    }
+                });
+                
+                // Set aktif styling tab terpilih
+                const activeTabId = 'tab-' + group.replace(' ', '-');
+                const activeTab = document.getElementById(activeTabId);
+                if (activeTab) {
+                    activeTab.className = "px-4 py-2 rounded-full font-bold text-xs transition-all bg-[#035D51] text-white shadow-md shadow-[#035D51]/20 shrink-0";
+                }
+                
+                // Saring kartu pesanan
+                let visibleCount = 0;
+                document.querySelectorAll('.order-card').forEach(card => {
+                    if (group === 'all' || card.getAttribute('data-group') === group) {
+                        card.classList.remove('hidden');
+                        visibleCount++;
+                    } else {
+                        card.classList.add('hidden');
+                    }
+                });
+                
+                // Tampilkan pesan kosong jika tidak ada pesanan di tab tsb
+                const emptyState = document.getElementById('tab-empty-state');
+                if (visibleCount === 0) {
+                    emptyState.classList.remove('hidden');
+                    document.getElementById('tab-empty-text').innerText = "Tidak ada pesanan dengan status \"" + group + "\" saat ini.";
+                } else {
+                    emptyState.classList.add('hidden');
+                }
+            };
+
+            resultDiv.innerHTML = htmlContent;
+        })
+        .catch(err => {
+            console.error(err);
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            resultDiv.innerHTML = `
+                <div class="bg-error-container text-on-error-container p-6 rounded-[2rem] border border-error/15 text-center font-bold">
+                    <span class="material-symbols-outlined text-3xl mb-2 block">error</span>
+                    Terjadi kesalahan koneksi internet. Silakan coba lagi.
+                </div>
+            `;
+        });
+}
+</script>
 
 <?php
 // Render the footer (CTA banner, footer content, scripts)

@@ -48,9 +48,9 @@ $sql = "
         GROUP_CONCAT(oi.kategori SEPARATOR ', ') AS kategori_list,
         GROUP_CONCAT(CONCAT(oi.nama_item, ' (x', oi.qty, ')') SEPARATOR ', ') AS item_list,
         SUM(oi.qty) AS total_qty
-    FROM orders o
-    JOIN customers c ON o.customer_id = c.id
-    LEFT JOIN order_items oi ON o.id = oi.order_id
+    FROM `order` o
+    JOIN customer c ON o.customer_id = c.id
+    LEFT JOIN order_item oi ON o.id = oi.order_id
     $where_clause
     GROUP BY o.id
     ORDER BY o.created_at DESC

@@ -157,12 +157,23 @@ try {
 $pdo->exec("USE `$db_name`");
 
 // ═══════════════════════════════════════════════════════════
-// STEP 3: Buat Tabel users (untuk login admin)
+// DROP TABLES LAMA & BARU AGAR CLEAN REBUILD
+// ═══════════════════════════════════════════════════════════
+try {
+    $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
+    $pdo->exec("DROP TABLE IF EXISTS `order_item`, `order`, `customer`, `user`, `order_items`, `orders`, `customers`, `users`;");
+    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+} catch (PDOException $e) {
+    logStep('info', 'Catatan saat membersihkan tabel lama: ' . $e->getMessage());
+}
+
+// ═══════════════════════════════════════════════════════════
+// STEP 3: Buat Tabel user (untuk login admin & staf)
 // ═══════════════════════════════════════════════════════════
 $total_steps++;
 try {
     $pdo->exec("
-        CREATE TABLE IF NOT EXISTS `users` (
+        CREATE TABLE IF NOT EXISTS `user` (
             `id`            INT AUTO_INCREMENT PRIMARY KEY,
             `username`      VARCHAR(50) NOT NULL UNIQUE,
             `password_hash` VARCHAR(255) NOT NULL,
@@ -171,19 +182,19 @@ try {
             `created_at`    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB
     ");
-    logStep('success', 'Tabel <b>users</b> berhasil dibuat — Data login admin');
+    logStep('success', 'Tabel <b>user</b> berhasil dibuat — Data login admin/staf');
     $success_count++;
 } catch (PDOException $e) {
-    logStep('error', 'Gagal membuat tabel users: ' . $e->getMessage());
+    logStep('error', 'Gagal membuat tabel user: ' . $e->getMessage());
 }
 
 // ═══════════════════════════════════════════════════════════
-// STEP 4: Buat Tabel customers (data pelanggan)
+// STEP 4: Buat Tabel customer (data pelanggan)
 // ═══════════════════════════════════════════════════════════
 $total_steps++;
 try {
     $pdo->exec("
-        CREATE TABLE IF NOT EXISTS `customers` (
+        CREATE TABLE IF NOT EXISTS `customer` (
             `id`         INT AUTO_INCREMENT PRIMARY KEY,
             `nama`       VARCHAR(100) NOT NULL,
             `telepon`    VARCHAR(20) NOT NULL,
@@ -191,46 +202,48 @@ try {
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB
     ");
-    logStep('success', 'Tabel <b>customers</b> berhasil dibuat — Data pelanggan');
+    logStep('success', 'Tabel <b>customer</b> berhasil dibuat — Data pelanggan');
     $success_count++;
 } catch (PDOException $e) {
-    logStep('error', 'Gagal membuat tabel customers: ' . $e->getMessage());
+    logStep('error', 'Gagal membuat tabel customer: ' . $e->getMessage());
 }
 
 // ═══════════════════════════════════════════════════════════
-// STEP 5: Buat Tabel orders (pesanan)
+// STEP 5: Buat Tabel order (pesanan)
 // ═══════════════════════════════════════════════════════════
 $total_steps++;
 try {
     $pdo->exec("
-        CREATE TABLE IF NOT EXISTS `orders` (
+        CREATE TABLE IF NOT EXISTS `order` (
             `id`                INT AUTO_INCREMENT PRIMARY KEY,
             `customer_id`       INT NOT NULL,
+            `user_id`           INT DEFAULT NULL,
             `total_harga`       INT NOT NULL DEFAULT 0,
             `metode_bayar`      VARCHAR(30) NOT NULL DEFAULT 'tunai',
             `bank`              VARCHAR(20) DEFAULT NULL,
-            `status`            ENUM('pending', 'diproses', 'dicuci', 'selesai', 'diambil') DEFAULT 'pending',
+            `status`            ENUM('pending', 'diproses', 'cuci', 'setrika', 'selesai', 'siap diambil', 'sudah diambil') DEFAULT 'pending',
             `snap_token`        VARCHAR(255) DEFAULT NULL,
             `midtrans_order_id` VARCHAR(100) DEFAULT NULL,
             `payment_status`    VARCHAR(30) DEFAULT NULL,
             `created_at`        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             `updated_at`        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE CASCADE
+            FOREIGN KEY (`customer_id`) REFERENCES `customer`(`id`) ON DELETE CASCADE,
+            FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE SET NULL
         ) ENGINE=InnoDB
     ");
-    logStep('success', 'Tabel <b>orders</b> berhasil dibuat — Data pesanan');
+    logStep('success', 'Tabel <b>order</b> berhasil dibuat — Data pesanan');
     $success_count++;
 } catch (PDOException $e) {
-    logStep('error', 'Gagal membuat tabel orders: ' . $e->getMessage());
+    logStep('error', 'Gagal membuat tabel order: ' . $e->getMessage());
 }
 
 // ═══════════════════════════════════════════════════════════
-// STEP 6: Buat Tabel order_items (detail item per pesanan)
+// STEP 6: Buat Tabel order_item (detail item per pesanan)
 // ═══════════════════════════════════════════════════════════
 $total_steps++;
 try {
     $pdo->exec("
-        CREATE TABLE IF NOT EXISTS `order_items` (
+        CREATE TABLE IF NOT EXISTS `order_item` (
             `id`          INT AUTO_INCREMENT PRIMARY KEY,
             `order_id`    INT NOT NULL,
             `kategori`    VARCHAR(100) NOT NULL,
@@ -238,13 +251,13 @@ try {
             `harga`       INT NOT NULL,
             `qty`         INT NOT NULL DEFAULT 1,
             `subtotal`    INT NOT NULL DEFAULT 0,
-            FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON DELETE CASCADE
+            FOREIGN KEY (`order_id`) REFERENCES `order`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB
     ");
-    logStep('success', 'Tabel <b>order_items</b> berhasil dibuat — Detail item pesanan');
+    logStep('success', 'Tabel <b>order_item</b> berhasil dibuat — Detail item pesanan');
     $success_count++;
 } catch (PDOException $e) {
-    logStep('error', 'Gagal membuat tabel order_items: ' . $e->getMessage());
+    logStep('error', 'Gagal membuat tabel order_item: ' . $e->getMessage());
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -253,12 +266,12 @@ try {
 $total_steps++;
 try {
     // Cek apakah admin sudah ada
-    $stmt = $pdo->query("SELECT COUNT(*) FROM `users` WHERE `username` = 'admin'");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM `user` WHERE `username` = 'admin'");
     $exists = $stmt->fetchColumn();
     
     if ($exists == 0) {
         $hashed = password_hash('admin123', PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO `users` (`username`, `password_hash`, `nama_lengkap`, `role`) VALUES (?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO `user` (`username`, `password_hash`, `nama_lengkap`, `role`) VALUES (?, ?, ?, ?)");
         $stmt->execute(['admin', $hashed, 'Administrator', 'admin']);
         logStep('success', 'Akun admin default berhasil dibuat — <b>admin / admin123</b>');
     } else {
@@ -274,11 +287,11 @@ try {
 // ═══════════════════════════════════════════════════════════
 $total_steps++;
 try {
-    $stmt = $pdo->query("SELECT COUNT(*) FROM `customers`");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM `customer`");
     $count = $stmt->fetchColumn();
     
     if ($count == 0) {
-        $stmt = $pdo->prepare("INSERT INTO `customers` (`nama`, `telepon`, `alamat`) VALUES (?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO `customer` (`nama`, `telepon`, `alamat`) VALUES (?, ?, ?)");
         $stmt->execute(['Budi Santoso', '081234567890', 'Jl. BSD Raya No. 45, Serpong, Tangerang Selatan']);
         $stmt->execute(['Siti Rahayu', '085678901234', 'Jl. Alam Sutera Boulevard, Serpong Utara']);
         $stmt->execute(['Ahmad Rizky', '087890123456', 'Perumahan Graha Raya Blok C5 No. 12, Pondok Aren']);
@@ -296,24 +309,24 @@ try {
 // ═══════════════════════════════════════════════════════════
 $total_steps++;
 try {
-    $stmt = $pdo->query("SELECT COUNT(*) FROM `orders`");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM `order`");
     $count = $stmt->fetchColumn();
     
     if ($count == 0) {
-        // Order 1: Budi Santoso
-        $pdo->exec("INSERT INTO `orders` (`customer_id`, `total_harga`, `metode_bayar`, `status`) VALUES (1, 47500, 'qris', 'diproses')");
+        // Order 1: Budi Santoso (Diproses oleh Admin ID 1)
+        $pdo->exec("INSERT INTO `order` (`customer_id`, `user_id`, `total_harga`, `metode_bayar`, `status`) VALUES (1, 1, 47500, 'qris', 'diproses')");
         $order1_id = $pdo->lastInsertId();
-        $stmt = $pdo->prepare("INSERT INTO `order_items` (`order_id`, `kategori`, `nama_item`, `harga`, `qty`, `subtotal`) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO `order_item` (`order_id`, `kategori`, `nama_item`, `harga`, `qty`, `subtotal`) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->execute([$order1_id, 'Cuci - Setrika Min 3 Kg', 'Reguler (3 Hari)', 8000, 5, 40000]);
         $stmt->execute([$order1_id, 'Cuci - Setrika Min 3 Kg', 'Express 6 jam', 14000, 1, 14000]);
 
-        // Order 2: Siti Rahayu
-        $pdo->exec("INSERT INTO `orders` (`customer_id`, `total_harga`, `metode_bayar`, `status`) VALUES (2, 30000, 'transfer', 'pending')");
+        // Order 2: Siti Rahayu (Belum diproses, user_id NULL)
+        $pdo->exec("INSERT INTO `order` (`customer_id`, `user_id`, `total_harga`, `metode_bayar`, `status`) VALUES (2, NULL, 35000, 'transfer', 'pending')");
         $order2_id = $pdo->lastInsertId();
         $stmt->execute([$order2_id, 'Satuan Bedcover - Seprei', 'Bedcover Besar', 35000, 1, 35000]);
 
-        // Order 3: Ahmad Rizky
-        $pdo->exec("INSERT INTO `orders` (`customer_id`, `total_harga`, `metode_bayar`, `bank`, `status`) VALUES (3, 10000, 'tunai', NULL, 'selesai')");
+        // Order 3: Ahmad Rizky (Selesai diproses oleh Admin ID 1)
+        $pdo->exec("INSERT INTO `order` (`customer_id`, `user_id`, `total_harga`, `metode_bayar`, `bank`, `status`) VALUES (3, 1, 10000, 'tunai', NULL, 'selesai')");
         $order3_id = $pdo->lastInsertId();
         $stmt->execute([$order3_id, 'Self Service', 'Mesin 8 Kg', 10000, 1, 10000]);
 
@@ -340,20 +353,20 @@ echo '
 <div class="table-list">
     <h3>📋 Tabel yang Dibuat:</h3>
     <div class="table-item">
-        <span class="table-name">users</span>
-        <span class="table-desc">Login admin (username, password hash, role)</span>
+        <span class="table-name">user</span>
+        <span class="table-desc">Login admin/staf (username, password hash, role)</span>
     </div>
     <div class="table-item">
-        <span class="table-name">customers</span>
+        <span class="table-name">customer</span>
         <span class="table-desc">Data pelanggan (nama, telepon, alamat)</span>
     </div>
     <div class="table-item">
-        <span class="table-name">orders</span>
-        <span class="table-desc">Data pesanan (total, metode bayar, status)</span>
+        <span class="table-name">order</span>
+        <span class="table-desc">Data pesanan (total, metode bayar, status, user_id pengelola)</span>
     </div>
     <div class="table-item">
-        <span class="table-name">order_items</span>
-        <span class="table-desc">Detail item per pesanan (kategori, harga, qty)</span>
+        <span class="table-name">order_item</span>
+        <span class="table-desc">Detail item per pesanan (kategori, harga, qty, subtotal)</span>
     </div>
 </div>
 

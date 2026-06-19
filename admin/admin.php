@@ -28,13 +28,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
 
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+    $stmt = $pdo->prepare("SELECT * FROM user WHERE username = ?");
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password_hash'])) {
         $_SESSION['is_admin'] = true;
         $_SESSION['admin_name'] = $user['nama_lengkap'];
+        $_SESSION['admin_id'] = $user['id'];
     } else {
         $login_error = "Username atau password salah!";
     }
@@ -51,15 +52,16 @@ if (isset($_GET['logout'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $order_id = $_POST['order_id'];
     $new_status = $_POST['new_status'];
-    $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
-    $stmt->execute([$new_status, $order_id]);
+    $admin_id = $_SESSION['admin_id'] ?? null;
+    $stmt = $pdo->prepare("UPDATE `order` SET status = ?, user_id = ? WHERE id = ?");
+    $stmt->execute([$new_status, $admin_id, $order_id]);
     header("Location: admin.php");
     exit;
 }
 
 // --- Delete Pesanan ---
 if (isset($_GET['delete_order'])) {
-    $stmt = $pdo->prepare("DELETE FROM orders WHERE id = ?");
+    $stmt = $pdo->prepare("DELETE FROM `order` WHERE id = ?");
     $stmt->execute([$_GET['delete_order']]);
     if (isset($_GET['ajax'])) {
         header('Content-Type: application/json');
@@ -72,7 +74,7 @@ if (isset($_GET['delete_order'])) {
 
 // --- Delete Pelanggan ---
 if (isset($_GET['delete_customer'])) {
-    $stmt = $pdo->prepare("DELETE FROM customers WHERE id = ?");
+    $stmt = $pdo->prepare("DELETE FROM customer WHERE id = ?");
     $stmt->execute([$_GET['delete_customer']]);
     if (isset($_GET['ajax'])) {
         header('Content-Type: application/json');
@@ -87,7 +89,7 @@ $is_admin = isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
 
 // ═══════════════════ FETCH DATA ═══════════════════
 if ($is_admin) {
-    // Fetch pesanan dengan JOIN ke customers dan order_items
+    // Fetch pesanan dengan JOIN ke customer dan order_item
     $orders = $pdo->query("
         SELECT 
             o.id,
@@ -101,9 +103,9 @@ if ($is_admin) {
             GROUP_CONCAT(DISTINCT oi.kategori SEPARATOR ', ') AS kategori_list,
             GROUP_CONCAT(CONCAT(oi.nama_item, ' (x', oi.qty, ')') SEPARATOR ', ') AS item_list,
             SUM(oi.qty) AS total_qty
-        FROM orders o
-        JOIN customers c ON o.customer_id = c.id
-        LEFT JOIN order_items oi ON o.id = oi.order_id
+        FROM `order` o
+        JOIN customer c ON o.customer_id = c.id
+        LEFT JOIN order_item oi ON o.id = oi.order_id
         GROUP BY o.id
         ORDER BY o.created_at DESC
     ")->fetchAll();
@@ -112,16 +114,17 @@ if ($is_admin) {
     $customers = $pdo->query("
         SELECT 
             c.*,
-            (SELECT o.status FROM orders o WHERE o.customer_id = c.id ORDER BY o.created_at DESC LIMIT 1) AS latest_order_status
-        FROM customers c
+            (SELECT o.status FROM `order` o WHERE o.customer_id = c.id ORDER BY o.created_at DESC LIMIT 1) AS latest_order_status
+        FROM customer c
         ORDER BY c.id ASC
     ")->fetchAll();
 
     // Stats
     $total_orders = count($orders);
     $total_customers = count($customers);
-    $total_revenue = $pdo->query("SELECT COALESCE(SUM(total_harga), 0) FROM orders")->fetchColumn();
-    $pending_orders = $pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
+    $total_revenue = $pdo->query("SELECT COALESCE(SUM(total_harga), 0) FROM `order`")->fetchColumn();
+    $pending_orders = $pdo->query("SELECT COUNT(*) FROM `order` WHERE status = 'pending'")->fetchColumn();
+    $max_order_id = (int) $pdo->query("SELECT COALESCE(MAX(id), 0) FROM `order`")->fetchColumn();
 
     // Chart data: 4 minggu terakhir
     $chart_data = $pdo->query("
@@ -130,7 +133,7 @@ if ($is_admin) {
             MIN(DATE(created_at)) AS start_date,
             COUNT(*) AS total_pesanan,
             COALESCE(SUM(total_harga), 0) AS total_revenue
-        FROM orders
+        FROM `order`
         WHERE created_at >= DATE_SUB(NOW(), INTERVAL 4 WEEK)
         GROUP BY YEARWEEK(created_at, 1)
         ORDER BY minggu ASC
@@ -309,11 +312,12 @@ if ($is_admin) {
         }
 
         /* Table Header Styles */
+        .dt-scroll-head thead th,
         #orders-table thead th,
         #customers-table thead th {
-            background-color: #eeeeee !important; /* surface-container */
-            color: #00433a !important; /* primary */
-            border-bottom: 2px solid rgba(111, 121, 118, 0.3) !important;
+            background-color: #00433a !important; /* primary green */
+            color: #ffffff !important; /* white text */
+            border-bottom: 2px solid #00322b !important;
             font-weight: 700 !important;
         }
 
@@ -442,10 +446,7 @@ if ($is_admin) {
                 <div class="absolute top-0 right-0 w-32 h-32 bg-primary-fixed rounded-bl-[4rem] -z-0 opacity-50"></div>
 
                 <div class="relative z-10 text-center mb-8">
-                    <div
-                        class="w-20 h-20 bg-secondary-container rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-secondary-container/30">
-                        <span class="material-symbols-outlined text-4xl text-on-secondary-fixed">admin_panel_settings</span>
-                    </div>
+                    <img src="../assets/gambar/LOGO.png" alt="Logo Laughndry" class="w-20 h-20 mx-auto mb-6 object-contain">
                     <h1 class="text-3xl font-black text-primary mb-2">Login Admin</h1>
                     <p class="text-on-surface-variant">Silakan login untuk mengelola pesanan.</p>
                 </div>
@@ -473,9 +474,6 @@ if ($is_admin) {
                         class="w-full bg-primary text-on-primary py-3.5 rounded-full font-bold text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20 mt-4">
                         Login
                     </button>
-                    <div class="text-center text-xs text-on-surface-variant mt-2">
-                        Gunakan <b>admin</b> / <b>admin123</b> untuk demo.
-                    </div>
                 </form>
             </div>
         </section>
@@ -652,9 +650,11 @@ if ($is_admin) {
                                                 $status_colors = [
                                                     'pending' => 'bg-yellow-100 text-yellow-800',
                                                     'diproses' => 'bg-blue-100 text-blue-800',
-                                                    'dicuci' => 'bg-cyan-100 text-cyan-800',
+                                                    'cuci' => 'bg-cyan-100 text-cyan-800',
+                                                    'setrika' => 'bg-amber-100 text-amber-800',
                                                     'selesai' => 'bg-green-100 text-green-800',
-                                                    'diambil' => 'bg-gray-100 text-gray-600',
+                                                    'siap diambil' => 'bg-purple-100 text-purple-800',
+                                                    'sudah diambil' => 'bg-gray-100 text-gray-600',
                                                 ];
                                                 $badge = $status_colors[$order['status']] ?? 'bg-gray-100 text-gray-600';
 
@@ -697,9 +697,9 @@ if ($is_admin) {
                                                             <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
                                                             <select name="new_status" onchange="this.form.submit()"
                                                                 class="text-xs font-bold pl-4 pr-8 py-2 rounded-full border-0 cursor-pointer min-w-[120px] <?= $badge ?> focus:ring-2 focus:ring-primary/20">
-                                                                <?php foreach (['pending', 'diproses', 'dicuci', 'selesai', 'diambil'] as $s): ?>
+                                                                <?php foreach (['pending', 'diproses', 'cuci', 'setrika', 'selesai', 'siap diambil', 'sudah diambil'] as $s): ?>
                                                                     <option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>>
-                                                                        <?= ucfirst($s) ?>
+                                                                        <?= ucwords($s) ?>
                                                                     </option>
                                                                 <?php endforeach; ?>
                                                             </select>
@@ -787,8 +787,10 @@ if ($is_admin) {
                                                              $wa_phone = formatWaNumber($cust['telepon']);
                                                              if ($cust['latest_order_status'] === 'pending') {
                                                                  $wa_msg = "Pesanan laundry anda telah dibuat, mohon konfirmasi pembayaran ke admin";
-                                                             } else {
+                                                             } elseif ($cust['latest_order_status'] === 'diproses') {
                                                                  $wa_msg = "Pesanan laundry anda telah dibuat dan saat ini sedang diproses";
+                                                             } else {
+                                                                 $wa_msg = "Pesanan laundry anda telah dibuat, status saat ini: " . ucwords($cust['latest_order_status']);
                                                              }
                                                              $wa_link = "https://wa.me/" . $wa_phone . "?text=" . urlencode($wa_msg);
                                                              ?>
@@ -822,6 +824,51 @@ if ($is_admin) {
 
             </div>
         </section>
+
+        <!-- Modal Notifikasi Pesanan Baru -->
+        <div id="new-order-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
+            <div class="bg-surface-container-lowest max-w-md w-full rounded-[2.5rem] shadow-2xl border border-primary/20 overflow-hidden transform scale-95 transition-transform duration-300">
+                <!-- Header -->
+                <div class="bg-primary p-6 text-center text-on-primary relative">
+                    <div class="w-16 h-16 bg-primary-container rounded-full flex items-center justify-center mx-auto mb-3 animate-bounce">
+                        <span class="material-symbols-outlined text-3xl text-on-primary-container">notifications_active</span>
+                    </div>
+                    <h3 class="text-xl font-black text-white">Pesanan Baru Masuk!</h3>
+                    <p class="text-xs text-white/80 mt-1">Sistem mendeteksi transaksi baru yang berhasil</p>
+                </div>
+                
+                <!-- Content -->
+                <div class="p-6 flex flex-col gap-4">
+                    <div class="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/20">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-outline-variant/10">
+                            <span class="text-xs font-bold text-on-surface-variant/70">ORDER ID</span>
+                            <span id="modal-order-id" class="text-sm font-black text-primary">#123</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-on-surface-variant/70">PELANGGAN</span>
+                            <span id="modal-customer-name" class="text-sm font-bold text-on-surface">Budi Santoso</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-xs font-bold text-on-surface-variant/70 block mb-1">DETAIL ITEM</span>
+                            <div id="modal-order-items" class="text-xs text-on-surface-variant bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/10 max-h-20 overflow-y-auto font-medium">
+                                Reguler (3 Hari) (x5), Express (x1)
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center pt-2 border-t border-outline-variant/10">
+                            <span class="text-xs font-bold text-on-surface-variant/70">TOTAL BAYAR</span>
+                            <span id="modal-total-harga" class="text-base font-black text-secondary">Rp 54.000</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer Buttons -->
+                <div class="px-6 pb-6">
+                    <button onclick="refreshDashboard()" class="w-full py-3.5 bg-primary text-on-primary hover:scale-[1.02] active:scale-95 font-bold rounded-full text-sm transition-all shadow-lg shadow-primary/20 text-center block">
+                        Proses Sekarang
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <!-- jQuery & DataTables JS -->
         <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -1090,6 +1137,126 @@ if ($is_admin) {
                         btnElement.disabled = false;
                     });
             }
+
+            // ═══════════ REAL-TIME NEW ORDER POLLING ═══════════
+            let lastOrderId = <?= $max_order_id ?? 0 ?>;
+
+            function checkNewOrders() {
+                if (lastOrderId <= 0) return;
+                
+                fetch('check_new_orders.php?last_id=' + lastOrderId)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success && data.new_orders && data.new_orders.length > 0) {
+                            // Ambil pesanan terbaru (yang terakhir dalam urutan ASC)
+                            const latestOrder = data.new_orders[data.new_orders.length - 1];
+                            
+                            // Update lastOrderId agar tidak memicu notifikasi berulang
+                            lastOrderId = latestOrder.id;
+                            
+                            // Tampilkan modal
+                            showNewOrderModal(latestOrder);
+                        }
+                    })
+                    .catch(err => console.error("Error checking new orders:", err));
+            }
+
+            function showNewOrderModal(order) {
+                // Mainkan suara chime
+                playNotificationSound();
+                
+                // Isi data ke modal
+                $('#modal-order-id').text('#' + order.id);
+                $('#modal-customer-name').text(order.customer_nama);
+                $('#modal-order-items').text(order.item_list || '-');
+                
+                const formattedHarga = 'Rp ' + parseInt(order.total_harga).toLocaleString('id-ID');
+                $('#modal-total-harga').text(formattedHarga);
+                
+                // Tampilkan overlay modal
+                const modal = $('#new-order-modal');
+                modal.removeClass('hidden');
+                setTimeout(() => {
+                    modal.removeClass('opacity-0');
+                    modal.find('> div').removeClass('scale-95').addClass('scale-100');
+                }, 50);
+            }
+
+            function closeNewOrderModal() {
+                const modal = $('#new-order-modal');
+                modal.addClass('opacity-0');
+                modal.find('> div').removeClass('scale-100').addClass('scale-95');
+                setTimeout(() => {
+                    modal.addClass('hidden');
+                }, 300);
+            }
+
+            function refreshDashboard() {
+                window.location.reload();
+            }
+
+            function playNotificationSound() {
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Nada ke-1
+                    let osc1 = audioCtx.createOscillator();
+                    let gain1 = audioCtx.createGain();
+                    osc1.type = 'sine';
+                    osc1.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+                    gain1.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+                    osc1.connect(gain1);
+                    gain1.connect(audioCtx.destination);
+                    osc1.start();
+                    osc1.stop(audioCtx.currentTime + 0.6);
+
+                    // Nada ke-2 (sedikit jeda)
+                    setTimeout(() => {
+                        let osc2 = audioCtx.createOscillator();
+                        let gain2 = audioCtx.createGain();
+                        osc2.type = 'sine';
+                        osc2.frequency.setValueAtTime(880.00, audioCtx.currentTime); // A5
+                        gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+                        osc2.connect(gain2);
+                        gain2.connect(audioCtx.destination);
+                        osc2.start();
+                        osc2.stop(audioCtx.currentTime + 0.8);
+                    }, 120);
+                } catch (e) {
+                    console.error("Web Audio API not supported or error:", e);
+                }
+            }
+
+            // Jalankan polling setiap 5 detik
+            if (lastOrderId > 0) {
+                setInterval(checkNewOrders, 5000);
+            }
+
+            // --- SCROLL & TAB RESTORATION ON REFRESH ---
+            window.addEventListener('beforeunload', () => {
+                const activeTab = $('#tab-content-pelanggan').hasClass('hidden') ? 'pesanan' : 'pelanggan';
+                sessionStorage.setItem('adminActiveTab', activeTab);
+                sessionStorage.setItem('adminScrollPosition', window.scrollY);
+            });
+
+            $(document).ready(function() {
+                const savedTab = sessionStorage.getItem('adminActiveTab');
+                const savedScroll = sessionStorage.getItem('adminScrollPosition');
+
+                if (savedTab) {
+                    switchTab(savedTab);
+                    sessionStorage.removeItem('adminActiveTab');
+                }
+
+                if (savedScroll) {
+                    setTimeout(() => {
+                        window.scrollTo(0, parseInt(savedScroll));
+                        sessionStorage.removeItem('adminScrollPosition');
+                    }, 100);
+                }
+            });
         </script>
     <?php endif; ?>
 

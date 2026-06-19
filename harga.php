@@ -37,6 +37,48 @@ require_once __DIR__ . '/header.php';
 </div>
 
 <script>
+    // Accordion Toggle function (Global Scope)
+    function toggleCategory(catId, forceOpen = false) {
+        const content = document.getElementById('content-' + catId);
+        const arrow = document.getElementById('arrow-' + catId);
+        if (!content || !arrow) return;
+
+        const isOpen = content.classList.contains('is-open');
+
+        if (isOpen && !forceOpen) {
+            // Close it
+            content.classList.remove('is-open');
+            content.style.height = content.scrollHeight + 'px';
+            content.offsetHeight; // Force reflow to ensure animation runs
+            content.style.height = '0px';
+
+            // Reset arrow icon style & rotation
+            const icon = arrow.querySelector('span');
+            if (icon) icon.style.transform = 'rotate(0deg)';
+            arrow.classList.remove('bg-primary', 'text-on-primary');
+            arrow.classList.add('bg-surface-container/50', 'text-primary');
+        } else {
+            // Open it
+            content.classList.add('is-open');
+            content.style.height = content.scrollHeight + 'px';
+
+            // Rotate arrow icon & change style
+            const icon = arrow.querySelector('span');
+            if (icon) icon.style.transform = 'rotate(180deg)';
+            arrow.classList.remove('bg-surface-container/50', 'text-primary');
+            arrow.classList.add('bg-primary', 'text-on-primary');
+
+            // Set height to auto after transition is done to support responsiveness
+            const onTransitionEnd = () => {
+                if (content.classList.contains('is-open')) {
+                    content.style.height = 'auto';
+                }
+                content.removeEventListener('transitionend', onTransitionEnd);
+            };
+            content.addEventListener('transitionend', onTransitionEnd);
+        }
+    }
+
     // Simpan cart di sessionStorage dan redirect ke daftar-laundry.php dengan data
     document.addEventListener('DOMContentLoaded', () => {
         const cartCount = document.getElementById('cart-count');
@@ -103,26 +145,48 @@ require_once __DIR__ . '/header.php';
             e.preventDefault();
             window.location.href = 'daftar-laundry.php';
         });
+
+        // Auto-expand category if hash is in the URL (e.g. index.php -> harga.php#satuan)
+        const hash = window.location.hash;
+        if (hash) {
+            const targetId = hash.substring(1);
+            setTimeout(() => {
+                toggleCategory(targetId, true);
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 300);
+        }
     });
 </script>
+
 
 <!-- ═══════════════════════════ PRICE LIST SECTION ═══════════════════════════ -->
 <section class="py-12 bg-surface">
     <div class="max-w-7xl mx-auto px-4 sm:px-8 space-y-12">
-        <?php foreach ($full_price_list as $category): ?>
-            <div class="reveal" id="<?= isset($category['id']) ? $category['id'] : '' ?>" style="scroll-margin-top: 160px;">
-                <!-- Category Title -->
-                <div class="border-l-4 border-secondary-container pl-4 mb-6">
-                    <h2 class="text-xl sm:text-2xl font-bold text-primary"><?= $category['category'] ?></h2>
-                    <?php if (!empty($category['desc'])): ?>
-                        <p class="text-xs sm:text-sm text-on-surface-variant mt-1"><?= $category['desc'] ?></p>
-                    <?php endif; ?>
+        <?php foreach ($full_price_list as $index => $category): 
+            $cat_id = isset($category['id']) ? $category['id'] : 'cat-' . $index;
+        ?>
+            <div class="reveal bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden" id="<?= htmlspecialchars($cat_id) ?>" style="scroll-margin-top: 160px;">
+                <!-- Category Title (Interactive Header) -->
+                <div class="category-header group flex items-center justify-between p-4 sm:p-6 cursor-pointer select-none hover:bg-surface-variant/10 transition-colors duration-200"
+                     onclick="toggleCategory('<?= htmlspecialchars($cat_id) ?>')">
+                    <div class="border-l-4 border-secondary-container pl-4">
+                        <h2 class="text-xl sm:text-2xl font-bold text-primary group-hover:text-primary-container transition-colors duration-200"><?= $category['category'] ?></h2>
+                        <?php if (!empty($category['desc'])): ?>
+                            <p class="text-xs sm:text-sm text-on-surface-variant mt-1"><?= $category['desc'] ?></p>
+                        <?php endif; ?>
+                    </div>
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full bg-surface-container/50 text-primary group-hover:bg-primary group-hover:text-on-primary transition-all duration-300 transform" id="arrow-<?= htmlspecialchars($cat_id) ?>">
+                        <span class="material-symbols-outlined text-2xl transition-transform duration-300">keyboard_arrow_down</span>
+                    </div>
                 </div>
 
-                <!-- Category Items -->
-                <div
-                    class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/10 overflow-hidden">
-                    <table class="w-full text-left bg-white">
+                <!-- Category Items (Accordion Content) -->
+                <div id="content-<?= htmlspecialchars($cat_id) ?>"
+                     class="category-content h-0 overflow-hidden transition-all duration-300">
+                    <table class="w-full text-left bg-white border-t border-outline-variant/10">
                         <tbody class="divide-y divide-surface-variant">
                             <?php foreach ($category['items'] as $item):
                                 $icon = 'local_laundry_service';

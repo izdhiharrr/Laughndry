@@ -142,7 +142,7 @@ $nav_links = [
     ['label' => 'Home', 'href' => '#', 'active' => true, 'id' => 'nav-home'],
     ['label' => 'Tentang', 'href' => '#tentang', 'active' => false, 'id' => 'nav-tentang'],
     ['label' => 'Layanan', 'href' => '#layanan', 'active' => false, 'id' => 'nav-layanan'],
-    ['label' => 'Ulasan', 'href' => '#ulasan', 'active' => false, 'id' => 'nav-ulasan'],
+    ['label' => 'Lacak', 'href' => '#lacak', 'active' => false, 'id' => 'nav-lacak'],
     ['label' => 'Harga', 'href' => 'harga.php', 'active' => false, 'id' => 'nav-harga'],
 ];
 

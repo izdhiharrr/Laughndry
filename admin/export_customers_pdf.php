@@ -37,7 +37,7 @@ switch ($period) {
 }
 
 // Fetch customers
-$customers = $pdo->query("SELECT * FROM customers $where_clause ORDER BY nama ASC")->fetchAll();
+$customers = $pdo->query("SELECT * FROM customer $where_clause ORDER BY nama ASC")->fetchAll();
 
 // Build HTML
 $html = '

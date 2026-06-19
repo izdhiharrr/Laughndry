@@ -46,7 +46,7 @@ $new_status = $status_map[$payment_status] ?? 'pending';
 
 try {
     $stmt = $pdo->prepare("
-        UPDATE orders 
+        UPDATE `order` 
         SET status = ?, metode_bayar = ?, payment_status = ?, updated_at = NOW() 
         WHERE id = ?
     ");

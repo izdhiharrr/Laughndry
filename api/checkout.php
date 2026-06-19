@@ -49,16 +49,16 @@ try {
     // ═══════════════════════════════════════════
     // 1. Cek / buat pelanggan
     // ═══════════════════════════════════════════
-    $stmt = $pdo->prepare("SELECT id FROM customers WHERE telepon = ?");
+    $stmt = $pdo->prepare("SELECT id FROM customer WHERE telepon = ?");
     $stmt->execute([$telepon]);
     $existing = $stmt->fetch();
 
     if ($existing) {
         $customer_id = $existing['id'];
-        $stmt = $pdo->prepare("UPDATE customers SET nama = ?, alamat = ? WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE customer SET nama = ?, alamat = ? WHERE id = ?");
         $stmt->execute([$nama, $alamat, $customer_id]);
     } else {
-        $stmt = $pdo->prepare("INSERT INTO customers (nama, telepon, alamat) VALUES (?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO customer (nama, telepon, alamat) VALUES (?, ?, ?)");
         $stmt->execute([$nama, $telepon, $alamat]);
         $customer_id = $pdo->lastInsertId();
     }
@@ -79,7 +79,7 @@ try {
     $pay_status     = $is_tunai ? null : 'settlement';
 
     $stmt = $pdo->prepare("
-        INSERT INTO orders (customer_id, total_harga, metode_bayar, status, midtrans_order_id, payment_status) 
+        INSERT INTO `order` (customer_id, total_harga, metode_bayar, status, midtrans_order_id, payment_status) 
         VALUES (?, ?, ?, ?, ?, ?)
     ");
     $stmt->execute([$customer_id, $total_harga, $payment_type, $order_status, $midtrans_order_id, $pay_status]);
@@ -89,7 +89,7 @@ try {
     // 4. Simpan order items
     // ═══════════════════════════════════════════
     $stmt = $pdo->prepare("
-        INSERT INTO order_items (order_id, kategori, nama_item, harga, qty, subtotal) 
+        INSERT INTO order_item (order_id, kategori, nama_item, harga, qty, subtotal) 
         VALUES (?, ?, ?, ?, ?, ?)
     ");
 
