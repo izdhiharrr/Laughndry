@@ -1,10 +1,7 @@
 <?php
-/**
- * database.php — Koneksi Database PDO untuk Laughndry
- * 
- * File ini mengatur koneksi ke MySQL menggunakan PDO.
- * Default XAMPP: host=localhost, user=root, password kosong.
- */
+// Set default timezone to WIB (Asia/Jakarta)
+date_default_timezone_set('Asia/Jakarta');
+
 
 // Load autoloader dan dotenv jika tersedia
 if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
@@ -34,6 +31,8 @@ try {
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]
     );
+    // Set MySQL connection timezone to Asia/Jakarta (GMT+7)
+    $pdo->exec("SET time_zone = '+07:00'");
 } catch (PDOException $e) {
     die("❌ Koneksi database gagal: " . $e->getMessage());
 }
