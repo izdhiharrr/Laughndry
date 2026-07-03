@@ -488,351 +488,336 @@ if ($is_admin) {
         </section>
 
     <?php else: ?>
-        <!-- ======================= DASHBOARD ADMIN ======================= -->
-        <section class="py-12 sm:py-20 bg-surface min-h-screen">
-            <div class="max-w-7xl mx-auto px-4 sm:px-8">
-
-                <div
-                    class="flex flex-col md:flex-row md:items-end justify-between mb-12 sm:mb-16 gap-4 border-b border-outline-variant/20 pb-8">
-                    <div>
-                        <span
-                            class="text-secondary-container font-black tracking-[0.2em] text-sm mb-4 block">DASHBOARD</span>
-                        <h1 class="text-3xl sm:text-4xl font-black text-primary">Admin Panel</h1>
-                        <p class="text-on-surface-variant mt-2 max-w-xl">Selamat datang,
-                            <b><?= htmlspecialchars($_SESSION['admin_name'] ?? 'Admin') ?></b>. Kelola pesanan dan data
-                            pelanggan Laughndry.</p>
+        <div class="min-h-screen flex bg-background">
+            <!-- Sidebar -->
+            <aside id="admin-sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-primary text-white flex flex-col justify-between p-6 transform -translate-x-full transition-transform duration-300 md:translate-x-0 md:sticky md:top-0 md:h-screen shrink-0 border-r border-outline-variant/10">
+                <div class="flex flex-col gap-8 flex-1">
+                    <!-- Logo & Brand -->
+                    <div class="flex items-center gap-3">
+                        <img src="../assets/gambar/LOGO.png" alt="Logo" class="w-10 h-10 object-contain rounded-full bg-white p-1">
+                        <div>
+                            <h2 class="font-black text-lg leading-tight text-white">Laughndry</h2>
+                            <span class="text-xs text-primary-fixed-dim/80">Admin Panel</span>
+                        </div>
                     </div>
-                    <a href="?logout=true"
-                        class="inline-flex items-center justify-center gap-2 bg-error-container text-on-error-container px-6 py-3 rounded-full font-bold hover:bg-error hover:text-on-error transition-colors">
-                        <span class="material-symbols-outlined text-xl">logout</span> Logout
+
+                    <!-- Menu Navigation -->
+                    <nav class="flex flex-col gap-2">
+                        <button id="menu-dashboard" onclick="switchTab('dashboard')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-left bg-primary-fixed text-primary shadow-sm">
+                            <span class="material-symbols-outlined">dashboard</span>
+                            Dashboard
+                        </button>
+                        <button id="menu-pesanan" onclick="switchTab('pesanan')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-left text-white/80 hover:text-white hover:bg-white/10">
+                            <span class="material-symbols-outlined">receipt_long</span>
+                            Pesanan
+                        </button>
+                        <button id="menu-pelanggan" onclick="switchTab('pelanggan')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-left text-white/80 hover:text-white hover:bg-white/10">
+                            <span class="material-symbols-outlined">group</span>
+                            Pelanggan
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Logout Button -->
+                <div class="pt-4 border-t border-white/10">
+                    <a href="?logout=true" class="w-full flex items-center justify-center gap-2 bg-error-container text-on-error-container px-4 py-3 rounded-xl font-bold hover:bg-error hover:text-on-error transition-all text-sm">
+                        <span class="material-symbols-outlined text-lg">logout</span>
+                        Logout
                     </a>
                 </div>
-                <!-- ═══════════ NAVIGATION TABS ═══════════ -->
-                <div class="flex gap-4 mb-8 border-b border-outline-variant/20 pb-4">
-                    <button id="btn-tab-pesanan" onclick="switchTab('pesanan')" 
-                        class="flex-1 sm:flex-initial justify-center px-6 py-3 font-bold rounded-full transition-all text-sm flex items-center gap-2 bg-primary text-on-primary shadow-lg shadow-primary/20">
-                        <span class="material-symbols-outlined text-lg">receipt_long</span>
-                        Pesanan
+            </aside>
+
+            <!-- Overlay for Mobile Sidebar -->
+            <div id="sidebar-overlay" onclick="toggleSidebar(false)" class="fixed inset-0 z-30 bg-black/50 hidden md:hidden"></div>
+
+            <!-- Main Content Container -->
+            <div class="flex-1 flex flex-col min-w-0">
+                <!-- Mobile Header -->
+                <header class="bg-primary text-white px-4 py-3 flex items-center justify-between md:hidden shadow-md">
+                    <div class="flex items-center gap-2">
+                        <img src="../assets/gambar/LOGO.png" alt="Logo" class="w-8 h-8 object-contain rounded-full bg-white p-0.5">
+                        <span class="font-black text-white text-base">Laughndry Admin</span>
+                    </div>
+                    <button onclick="toggleSidebar(true)" class="p-2 text-white hover:bg-primary-container rounded-lg flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl">menu</span>
                     </button>
-                    <button id="btn-tab-pelanggan" onclick="switchTab('pelanggan')" 
-                        class="flex-1 sm:flex-initial justify-center px-6 py-3 font-bold rounded-full transition-all text-sm flex items-center gap-2 bg-surface-container-high text-on-surface-variant hover:bg-surface-variant">
-                        <span class="material-symbols-outlined text-lg">group</span>
-                        Pelanggan
-                    </button>
-                </div>
+                </header>
 
-                <!-- ═══════════ STAT CARDS ═══════════ -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
-                    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
-                        <div class="flex items-center gap-3 mb-3">
-                            <div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined text-primary text-xl">receipt_long</span>
-                            </div>
-                            <span class="text-sm text-on-surface-variant font-medium">Total Pesanan</span>
+                <!-- Main Content -->
+                <main class="flex-1 overflow-y-auto bg-background">
+                    <!-- SECTION 1: DASHBOARD -->
+                    <div id="section-dashboard" class="admin-section px-4 sm:px-8 py-8 md:py-12 max-w-7xl mx-auto w-full">
+                        <div class="mb-10 border-b border-outline-variant/20 pb-6">
+                            <span class="text-secondary font-black tracking-[0.2em] text-xs mb-2 block">RINGKASAN UTAMA</span>
+                            <h1 class="text-3xl font-black text-primary">Dashboard Admin</h1>
+                            <p class="text-on-surface-variant mt-1 text-sm">Berikut adalah ringkasan performa dan transaksi Laughndry saat ini.</p>
                         </div>
-                        <p class="text-2xl font-black text-primary"><?= $total_orders ?></p>
-                    </div>
-                    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
-                        <div class="flex items-center gap-3 mb-3">
-                            <div class="w-10 h-10 bg-secondary-fixed rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined text-secondary text-xl">pending_actions</span>
-                            </div>
-                            <span class="text-sm text-on-surface-variant font-medium">Pending</span>
-                        </div>
-                        <p class="text-2xl font-black text-secondary"><?= $pending_orders ?></p>
-                    </div>
-                    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
-                        <div class="flex items-center gap-3 mb-3">
-                            <div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined text-primary text-xl">group</span>
-                            </div>
-                            <span class="text-sm text-on-surface-variant font-medium">Pelanggan</span>
-                        </div>
-                        <p class="text-2xl font-black text-primary"><?= $total_customers ?></p>
-                    </div>
-                    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
-                        <div class="flex items-center gap-3 mb-3">
-                            <div class="w-10 h-10 bg-secondary-fixed rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined text-secondary text-xl">payments</span>
-                            </div>
-                            <span class="text-sm text-on-surface-variant font-medium">Total Revenue</span>
-                        </div>
-                        <p class="text-2xl font-black text-secondary">Rp <?= number_format($total_revenue, 0, ',', '.') ?>
-                        </p>
-                    </div>
-                </div>
 
-                <!-- ═══════════ CHART CARDS ═══════════ -->
-                <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-6 mb-12 chart-slider md:grid md:grid-cols-2 pb-4 md:pb-0">
-                    <div class="flex-shrink-0 w-[88%] snap-center bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 md:w-auto md:flex-shrink md:snap-none">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined text-primary text-xl">trending_up</span>
+                        <!-- ═══════════ STAT CARDS ═══════════ -->
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
+                            <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-primary text-xl">receipt_long</span>
+                                    </div>
+                                    <span class="text-sm text-on-surface-variant font-medium">Total Pesanan</span>
+                                </div>
+                                <p class="text-2xl font-black text-primary"><?= $total_orders ?></p>
                             </div>
+                            <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 bg-secondary-fixed rounded-full flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-secondary text-xl">pending_actions</span>
+                                    </div>
+                                    <span class="text-sm text-on-surface-variant font-medium">Pending</span>
+                                </div>
+                                <p class="text-2xl font-black text-secondary"><?= $pending_orders ?></p>
+                            </div>
+                            <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-primary text-xl">group</span>
+                                    </div>
+                                    <span class="text-sm text-on-surface-variant font-medium">Pelanggan</span>
+                                </div>
+                                <p class="text-2xl font-black text-primary"><?= $total_customers ?></p>
+                            </div>
+                            <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 bg-secondary-fixed rounded-full flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-secondary text-xl">payments</span>
+                                    </div>
+                                    <span class="text-sm text-on-surface-variant font-medium">Total Revenue</span>
+                                </div>
+                                <p class="text-2xl font-black text-secondary">Rp <?= number_format($total_revenue, 0, ',', '.') ?></p>
+                            </div>
+                        </div>
+
+                        <!-- ═══════════ CHART CARDS ═══════════ -->
+                        <div class="flex flex-col gap-4 sm:gap-6 mb-12 md:grid md:grid-cols-2">
+                            <div class="w-full bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 bg-primary-fixed rounded-full flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-primary text-xl">trending_up</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm text-on-surface-variant font-medium">Tren Pesanan</h3>
+                                        <p class="text-xs text-on-surface-variant/60">4 minggu terakhir</p>
+                                    </div>
+                                </div>
+                                <div style="position: relative; height: 200px;">
+                                    <canvas id="ordersChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="w-full bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 bg-secondary-fixed rounded-full flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-secondary text-xl">payments</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm text-on-surface-variant font-medium">Tren Revenue</h3>
+                                        <p class="text-xs text-on-surface-variant/60">4 minggu terakhir</p>
+                                    </div>
+                                </div>
+                                <div style="position: relative; height: 200px;">
+                                    <canvas id="revenueChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: PESANAN -->
+                    <div id="section-pesanan" class="admin-section hidden px-4 sm:px-8 py-8 md:py-12 max-w-7xl mx-auto w-full">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 pb-6 border-b border-outline-variant/20 gap-4">
                             <div>
-                                <h3 class="text-sm text-on-surface-variant font-medium">Tren Pesanan</h3>
-                                <p class="text-xs text-on-surface-variant/60">4 minggu terakhir</p>
+                                <h1 class="text-3xl font-black text-primary">Pesanan</h1>
+                                <p class="text-on-surface-variant mt-1 text-sm">Daftar pesanan dari pelanggan.</p>
                             </div>
-                        </div>
-                        <div style="position: relative; height: 200px;">
-                            <canvas id="ordersChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="flex-shrink-0 w-[88%] snap-center bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 md:w-auto md:flex-shrink md:snap-none">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-10 h-10 bg-secondary-fixed rounded-full flex items-center justify-center">
-                                <span class="material-symbols-outlined text-secondary text-xl">payments</span>
-                            </div>
-                            <div>
-                                <h3 class="text-sm text-on-surface-variant font-medium">Tren Revenue</h3>
-                                <p class="text-xs text-on-surface-variant/60">4 minggu terakhir</p>
-                            </div>
-                        </div>
-                        <div style="position: relative; height: 200px;">
-                            <canvas id="revenueChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ═══════════ PESANAN TAB CONTENT ═══════════ -->
-                <div id="tab-content-pesanan" class="tab-content transition-all duration-300">
-                    <div class="mb-16">
-                        <div class="text-center mb-8">
-                            <h2 class="text-2xl sm:text-3xl font-black text-primary mb-2">Pesanan</h2>
-                            <p class="text-on-surface-variant mb-6">Daftar pesanan dari pelanggan.</p>
-                            <div class="flex justify-center">
-                                <div class="relative inline-block text-left group" tabindex="0">
-                                    <button
-                                        class="inline-flex items-center gap-2 bg-primary-container text-on-primary px-6 py-2.5 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-md focus:outline-none focus:ring-4 focus:ring-primary/20">
-                                        <span class="material-symbols-outlined text-lg">download</span> Download Laporan
-                                        <span
-                                            class="material-symbols-outlined text-lg transition-transform group-focus-within:rotate-180 group-hover:rotate-180">expand_more</span>
-                                    </button>
-                                    <div
-                                        class="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-50">
-                                        <div class="py-2 flex flex-col text-center">
-                                            <a href="export_pdf.php?period=monthly" target="_blank"
-                                                class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Bulanan (PDF)</a>
-                                            <a href="export_excel.php?period=monthly" target="_blank"
-                                                class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-secondary font-bold transition-colors border-b border-outline-variant/10">Bulanan (XLSX)</a>
-                                            <a href="export_pdf.php?period=yearly" target="_blank"
-                                                class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Tahunan (PDF)</a>
-                                            <a href="export_excel.php?period=yearly" target="_blank"
-                                                class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-secondary font-bold transition-colors">Tahunan (XLSX)</a>
-                                        </div>
+                            <!-- Download Laporan Button -->
+                            <div class="relative inline-block text-left dropdown-container">
+                                <button onclick="toggleDropdown(this, event)" class="inline-flex items-center gap-2 bg-primary-container text-on-primary px-6 py-2.5 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-md focus:outline-none focus:ring-4 focus:ring-primary/20">
+                                    <span class="material-symbols-outlined text-lg">download</span> Download Laporan
+                                    <span class="material-symbols-outlined text-lg transition-transform arrow-icon">expand_more</span>
+                                </button>
+                                <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-xl opacity-0 invisible transition-all duration-200 z-50">
+                                    <div class="py-2 flex flex-col text-center">
+                                        <a href="export_pdf.php?period=monthly" target="_blank" class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Bulanan (PDF)</a>
+                                        <a href="export_excel.php?period=monthly" target="_blank" class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-secondary font-bold transition-colors border-b border-outline-variant/10">Bulanan (XLSX)</a>
+                                        <a href="export_pdf.php?period=yearly" target="_blank" class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Tahunan (PDF)</a>
+                                        <a href="export_excel.php?period=yearly" target="_blank" class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-secondary font-bold transition-colors">Tahunan (XLSX)</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div
-                            class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
+                        <div class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
                             <!-- Table -->
                             <table id="orders-table" class="w-full text-left border-collapse">
-                                    <thead class="sticky top-0 z-10">
-                                        <tr
-                                            class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm shadow-sm">
-                                            <th class="p-4 font-bold whitespace-nowrap">ID</th>
-                                            <th class="p-4 font-bold whitespace-nowrap">Tanggal</th>
-                                            <th class="p-4 font-bold whitespace-nowrap">Pelanggan</th>
-                                            <th class="p-4 font-bold whitespace-normal max-w-[110px]" style="width: 110px; min-width: 110px; max-width: 110px;">Jenis Layanan</th>
-                                            <th class="p-4 font-bold whitespace-normal max-w-[160px]" style="width: 160px; min-width: 160px; max-width: 160px;">Detail Item</th>
-                                            <th class="p-4 font-bold whitespace-nowrap">Qty</th>
-                                            <th class="p-4 font-bold whitespace-nowrap">Harga Total</th>
-                                            <th class="p-4 font-bold whitespace-nowrap">Metode Bayar</th>
-                                            <th class="p-4 font-bold whitespace-nowrap">Status</th>
-                                            <th class="p-4 font-bold whitespace-nowrap text-center">Action</th>
+                                <thead class="sticky top-0 z-10">
+                                    <tr class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm shadow-sm">
+                                        <th class="p-4 font-bold whitespace-nowrap">ID</th>
+                                        <th class="p-4 font-bold whitespace-nowrap">Tanggal</th>
+                                        <th class="p-4 font-bold whitespace-nowrap">Pelanggan</th>
+                                        <th class="p-4 font-bold whitespace-normal max-w-[110px]" style="width: 110px; min-width: 110px; max-width: 110px;">Jenis Layanan</th>
+                                        <th class="p-4 font-bold whitespace-normal max-w-[160px]" style="width: 160px; min-width: 160px; max-width: 160px;">Detail Item</th>
+                                        <th class="p-4 font-bold whitespace-nowrap">Qty</th>
+                                        <th class="p-4 font-bold whitespace-nowrap">Harga Total</th>
+                                        <th class="p-4 font-bold whitespace-nowrap">Metode Bayar</th>
+                                        <th class="p-4 font-bold whitespace-nowrap">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-outline-variant/20">
+                                    <?php if (empty($orders)): ?>
+                                        <tr>
+                                            <td colspan="9" class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">Belum ada pesanan.</td>
                                         </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-outline-variant/20">
-                                        <?php if (empty($orders)): ?>
-                                            <tr>
-                                                <td colspan="10"
-                                                    class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">
-                                                    Belum ada pesanan.
+                                    <?php else: ?>
+                                        <?php foreach ($orders as $order): ?>
+                                            <?php
+                                            // Status badge colors
+                                            $status_colors = [
+                                                'pending' => 'bg-yellow-100 text-yellow-800',
+                                                'diproses' => 'bg-blue-100 text-blue-800',
+                                                'cuci' => 'bg-cyan-100 text-cyan-800',
+                                                'setrika' => 'bg-amber-100 text-amber-800',
+                                                'selesai' => 'bg-green-100 text-green-800',
+                                                'siap diambil' => 'bg-purple-100 text-purple-800',
+                                                'sudah diambil' => 'bg-gray-100 text-gray-600',
+                                            ];
+                                            $badge = $status_colors[$order['status']] ?? 'bg-gray-100 text-gray-600';
+
+                                            // Metode bayar badge
+                                            $metode_icons = [
+                                                'tunai' => '💵 Tunai',
+                                                'qris' => '🔲 QRIS',
+                                                'transfer' => '🏦 Transfer',
+                                                'bank_transfer' => '🏦 Transfer',
+                                                'credit_card' => '💳 Kartu Kredit',
+                                                'gopay' => '📱 GoPay',
+                                                'shopeepay' => '📱 ShopeePay',
+                                                'cstore' => '🏪 Minimarket',
+                                                'echannel' => '🏦 Mandiri Bill',
+                                                'midtrans' => '💳 Online',
+                                            ];
+                                            $raw_metode = $order['metode_bayar'] ?? '';
+                                            $metode_label = $metode_icons[$raw_metode] ?? ($raw_metode ?: '💳 Online');
+                                            ?>
+                                            <tr class="hover:bg-surface-container-low transition-colors">
+                                                <td class="p-4 font-bold text-primary">#<?= $order['id'] ?></td>
+                                                <td class="p-4 text-on-surface-variant text-sm whitespace-nowrap" data-order="<?= strtotime($order['created_at']) ?>"><?= date('d M Y, H:i', strtotime($order['created_at'])) ?></td>
+                                                <td class="p-4 font-medium text-primary"><?= htmlspecialchars($order['customer_nama']) ?></td>
+                                                <td class="p-4 text-on-surface-variant text-sm max-w-[110px] whitespace-normal break-words" style="width: 110px; min-width: 110px; max-width: 110px;"><?= htmlspecialchars($order['kategori_list'] ?? '-') ?></td>
+                                                <td class="p-4 text-on-surface-variant text-sm max-w-[160px] whitespace-normal break-words" style="width: 160px; min-width: 160px; max-width: 160px;"><?= htmlspecialchars($order['item_list'] ?? '-') ?></td>
+                                                <td class="p-4 text-on-surface-variant font-medium"><?= $order['total_qty'] ?? 0 ?></td>
+                                                <td class="p-4 font-bold text-secondary">Rp <?= number_format($order['total_harga'], 0, ',', '.') ?></td>
+                                                <td class="p-4 text-sm"><?= $metode_label ?></td>
+                                                <td class="p-4">
+                                                    <!-- Status Update Form -->
+                                                    <form method="POST" action="admin.php" class="inline">
+                                                        <input type="hidden" name="update_status" value="1">
+                                                        <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+                                                        <select name="new_status" onchange="this.form.submit()" class="text-xs font-bold pl-4 pr-8 py-2 rounded-full border-0 cursor-pointer min-w-[120px] <?= $badge ?> focus:ring-2 focus:ring-primary/20">
+                                                            <?php foreach (['pending', 'diproses', 'cuci', 'setrika', 'selesai', 'siap diambil', 'sudah diambil'] as $s): ?>
+                                                                <option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>><?= ucwords($s) ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </form>
                                                 </td>
                                             </tr>
-                                        <?php else: ?>
-                                            <?php foreach ($orders as $order): ?>
-                                                <?php
-                                                // Status badge colors
-                                                $status_colors = [
-                                                    'pending' => 'bg-yellow-100 text-yellow-800',
-                                                    'diproses' => 'bg-blue-100 text-blue-800',
-                                                    'cuci' => 'bg-cyan-100 text-cyan-800',
-                                                    'setrika' => 'bg-amber-100 text-amber-800',
-                                                    'selesai' => 'bg-green-100 text-green-800',
-                                                    'siap diambil' => 'bg-purple-100 text-purple-800',
-                                                    'sudah diambil' => 'bg-gray-100 text-gray-600',
-                                                ];
-                                                $badge = $status_colors[$order['status']] ?? 'bg-gray-100 text-gray-600';
-
-                                                // Metode bayar badge
-                                                $metode_icons = [
-                                                    'tunai' => '💵 Tunai',
-                                                    'qris' => '🔲 QRIS',
-                                                    'transfer' => '🏦 Transfer',
-                                                    'bank_transfer' => '🏦 Transfer',
-                                                    'credit_card' => '💳 Kartu Kredit',
-                                                    'gopay' => '📱 GoPay',
-                                                    'shopeepay' => '📱 ShopeePay',
-                                                    'cstore' => '🏪 Minimarket',
-                                                    'echannel' => '🏦 Mandiri Bill',
-                                                    'midtrans' => '💳 Online',
-                                                ];
-                                                $raw_metode = $order['metode_bayar'] ?? '';
-                                                $metode_label = $metode_icons[$raw_metode] ?? ($raw_metode ?: '💳 Online');
-                                                ?>
-                                                <tr class="hover:bg-surface-container-low transition-colors">
-                                                    <td class="p-4 font-bold text-primary">#<?= $order['id'] ?></td>
-                                                    <td class="p-4 text-on-surface-variant text-sm whitespace-nowrap" data-order="<?= strtotime($order['created_at']) ?>">
-                                                        <?= date('d M Y, H:i', strtotime($order['created_at'])) ?></td>
-                                                    <td class="p-4 font-medium text-primary">
-                                                        <?= htmlspecialchars($order['customer_nama']) ?>
-                                                    </td>
-                                                    <td class="p-4 text-on-surface-variant text-sm max-w-[110px] whitespace-normal break-words" style="width: 110px; min-width: 110px; max-width: 110px;">
-                                                        <?= htmlspecialchars($order['kategori_list'] ?? '-') ?></td>
-                                                    <td class="p-4 text-on-surface-variant text-sm max-w-[160px] whitespace-normal break-words" style="width: 160px; min-width: 160px; max-width: 160px;">
-                                                        <?= htmlspecialchars($order['item_list'] ?? '-') ?></td>
-                                                    <td class="p-4 text-on-surface-variant font-medium"><?= $order['total_qty'] ?? 0 ?>
-                                                    </td>
-                                                    <td class="p-4 font-bold text-secondary">Rp
-                                                        <?= number_format($order['total_harga'], 0, ',', '.') ?></td>
-                                                    <td class="p-4 text-sm"><?= $metode_label ?></td>
-                                                    <td class="p-4">
-                                                        <!-- Status Update Form -->
-                                                        <form method="POST" action="admin.php" class="inline">
-                                                            <input type="hidden" name="update_status" value="1">
-                                                            <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
-                                                            <select name="new_status" onchange="this.form.submit()"
-                                                                class="text-xs font-bold pl-4 pr-8 py-2 rounded-full border-0 cursor-pointer min-w-[120px] <?= $badge ?> focus:ring-2 focus:ring-primary/20">
-                                                                <?php foreach (['pending', 'diproses', 'cuci', 'setrika', 'selesai', 'siap diambil', 'sudah diambil'] as $s): ?>
-                                                                    <option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>>
-                                                                        <?= ucwords($s) ?>
-                                                                    </option>
-                                                                <?php endforeach; ?>
-                                                            </select>
-                                                        </form>
-                                                    </td>
-                                                    <td class="p-4 text-center">
-                                                         <button type="button"
-                                                             onclick="deleteOrder(<?= $order['id'] ?>, this)"
-                                                             class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors">
-                                                             <span class="material-symbols-outlined text-base">delete</span>
-                                                         </button>
-                                                     </td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </tbody>
-                                </table>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </div>
 
-                <!-- ═══════════ PELANGGAN TAB CONTENT ═══════════ -->
-                <div id="tab-content-pelanggan" class="tab-content hidden transition-all duration-300">
-                    <div class="mb-16">
-                        <div class="text-center mb-8">
-                            <h2 class="text-2xl sm:text-3xl font-black text-primary mb-2">Profil Pelanggan</h2>
-                            <p class="text-on-surface-variant mb-6">Daftar pelanggan yang terdaftar.</p>
-                            <div class="flex justify-center">
-                                <div class="relative inline-block text-left group" tabindex="0">
-                                    <button
-                                        class="inline-flex items-center gap-2 bg-primary-container text-on-primary px-6 py-2.5 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-md focus:outline-none focus:ring-4 focus:ring-primary/20">
-                                        <span class="material-symbols-outlined text-lg">download</span> Download Laporan
-                                        <span
-                                            class="material-symbols-outlined text-lg transition-transform group-focus-within:rotate-180 group-hover:rotate-180">expand_more</span>
-                                    </button>
-                                    <div
-                                        class="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-50">
-                                        <div class="py-2 flex flex-col text-center">
-                                            <a href="export_customers_pdf.php?period=monthly" target="_blank"
-                                                class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Bulanan (PDF)</a>
-                                            <a href="export_customers_excel.php?period=monthly" target="_blank"
-                                                class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-secondary font-bold transition-colors border-b border-outline-variant/10">Bulanan (XLSX)</a>
-                                            <a href="export_customers_pdf.php?period=yearly" target="_blank"
-                                                class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Tahunan (PDF)</a>
-                                            <a href="export_customers_excel.php?period=yearly" target="_blank"
-                                                class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-secondary font-bold transition-colors">Tahunan (XLSX)</a>
-                                        </div>
+                    <!-- SECTION 3: PELANGGAN -->
+                    <div id="section-pelanggan" class="admin-section hidden px-4 sm:px-8 py-8 md:py-12 max-w-7xl mx-auto w-full">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 pb-6 border-b border-outline-variant/20 gap-4">
+                            <div>
+                                <h1 class="text-3xl font-black text-primary">Profil Pelanggan</h1>
+                                <p class="text-on-surface-variant mt-1 text-sm">Daftar pelanggan yang terdaftar.</p>
+                            </div>
+                            <!-- Download Laporan Button -->
+                            <div class="relative inline-block text-left dropdown-container">
+                                <button onclick="toggleDropdown(this, event)" class="inline-flex items-center gap-2 bg-primary-container text-on-primary px-6 py-2.5 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-md focus:outline-none focus:ring-4 focus:ring-primary/20">
+                                    <span class="material-symbols-outlined text-lg">download</span> Download Laporan
+                                    <span class="material-symbols-outlined text-lg transition-transform arrow-icon">expand_more</span>
+                                </button>
+                                <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-2xl shadow-xl opacity-0 invisible transition-all duration-200 z-50">
+                                    <div class="py-2 flex flex-col text-center">
+                                        <a href="export_customers_pdf.php?period=monthly" target="_blank" class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Bulanan (PDF)</a>
+                                        <a href="export_customers_excel.php?period=monthly" target="_blank" class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-secondary font-bold transition-colors border-b border-outline-variant/10">Bulanan (XLSX)</a>
+                                        <a href="export_customers_pdf.php?period=yearly" target="_blank" class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-primary font-bold transition-colors border-b border-outline-variant/10">Tahunan (PDF)</a>
+                                        <a href="export_customers_excel.php?period=yearly" target="_blank" class="px-4 py-2.5 text-sm text-on-surface-variant hover:bg-surface-container-low hover:text-secondary font-bold transition-colors">Tahunan (XLSX)</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div
-                            class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
+                        <div class="bg-surface-container-lowest rounded-[2rem] p-6 sm:p-8 shadow-md border border-outline-variant/10">
                             <!-- Table -->
                             <table id="customers-table" class="w-full text-left border-collapse">
-                                    <thead class="sticky top-0 z-10">
-                                        <tr
-                                            class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm shadow-sm">
-                                            <th class="p-4 font-bold whitespace-normal" style="width: 50px; min-width: 50px; max-width: 50px;">ID</th>
-                                            <th class="p-4 font-bold whitespace-normal" style="width: 150px; min-width: 150px; max-width: 150px;">Nama</th>
-                                            <th class="p-4 font-bold whitespace-normal" style="width: 250px; min-width: 250px; max-width: 250px;">Alamat</th>
-                                            <th class="p-4 font-bold whitespace-normal" style="width: 130px; min-width: 130px; max-width: 130px;">Nomor Telepon</th>
-                                            <th class="p-4 font-bold whitespace-normal" style="width: 120px; min-width: 120px; max-width: 120px;">Terdaftar</th>
-                                            <th class="p-4 font-bold text-center" style="width: 100px; min-width: 100px; max-width: 100px;">Delete</th>
+                                <thead class="sticky top-0 z-10">
+                                    <tr class="bg-surface-container text-primary border-b-2 border-outline-variant/30 text-sm shadow-sm">
+                                        <th class="p-4 font-bold whitespace-normal" style="width: 50px; min-width: 50px; max-width: 50px;">ID</th>
+                                        <th class="p-4 font-bold whitespace-normal" style="width: 150px; min-width: 150px; max-width: 150px;">Nama</th>
+                                        <th class="p-4 font-bold whitespace-normal" style="width: 250px; min-width: 250px; max-width: 250px;">Alamat</th>
+                                        <th class="p-4 font-bold whitespace-normal" style="width: 130px; min-width: 130px; max-width: 130px;">Nomor Telepon</th>
+                                        <th class="p-4 font-bold whitespace-normal" style="width: 120px; min-width: 120px; max-width: 120px;">Terdaftar</th>
+                                        <th class="p-4 font-bold text-center" style="width: 100px; min-width: 100px; max-width: 100px;">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-outline-variant/20">
+                                    <?php if (empty($customers)): ?>
+                                        <tr>
+                                            <td colspan="6" class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">Belum ada pelanggan terdaftar.</td>
                                         </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-outline-variant/20">
-                                        <?php if (empty($customers)): ?>
-                                            <tr>
-                                                <td colspan="6"
-                                                    class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">
-                                                    Belum ada pelanggan terdaftar.
+                                    <?php else: ?>
+                                        <?php foreach ($customers as $cust): ?>
+                                            <tr class="hover:bg-surface-container-low transition-colors group">
+                                                <td class="p-4 text-on-surface-variant font-medium" style="width: 50px; min-width: 50px; max-width: 50px;"><?= $cust['id'] ?></td>
+                                                <td class="p-4 font-bold text-primary whitespace-normal break-words" style="width: 150px; min-width: 150px; max-width: 150px;"><?= htmlspecialchars($cust['nama']) ?></td>
+                                                <td class="p-4 text-on-surface-variant whitespace-normal break-words" style="width: 250px; min-width: 250px; max-width: 250px;"><?= htmlspecialchars($cust['alamat']) ?></td>
+                                                <td class="p-4 text-on-surface-variant whitespace-normal break-words" style="width: 130px; min-width: 130px; max-width: 130px;">
+                                                    <?php if (!empty($cust['telepon'])): ?>
+                                                        <?php
+                                                        $wa_phone = formatWaNumber($cust['telepon']);
+                                                        if ($cust['latest_order_status'] === 'pending') {
+                                                            $wa_msg = "Pesanan laundry anda telah dibuat, mohon konfirmasi pembayaran ke admin";
+                                                        } elseif ($cust['latest_order_status'] === 'diproses') {
+                                                            $wa_msg = "Pesanan laundry anda telah dibuat dan saat ini sedang diproses";
+                                                        } else {
+                                                            $wa_msg = "Pesanan laundry anda telah dibuat, status saat ini: " . ucwords($cust['latest_order_status']);
+                                                        }
+                                                        $wa_link = "https://wa.me/" . $wa_phone . "?text=" . urlencode($wa_msg);
+                                                        ?>
+                                                        <a href="<?= $wa_link ?>" target="_blank" class="inline-flex items-center gap-1 text-[#035D51] hover:underline font-semibold">
+                                                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                                                            </svg>
+                                                            <?= htmlspecialchars($cust['telepon']) ?>
+                                                        </a>
+                                                    <?php else: ?>
+                                                        -
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="p-4 text-on-surface-variant text-sm whitespace-normal" style="width: 120px; min-width: 120px; max-width: 120px;" data-order="<?= strtotime($cust['created_at']) ?>"><?= date('d M Y', strtotime($cust['created_at'])) ?></td>
+                                                <td class="p-4 text-center" style="width: 100px; min-width: 100px; max-width: 100px;">
+                                                    <button type="button" onclick="deleteCustomer(<?= $cust['id'] ?>, '<?= htmlspecialchars($cust['nama'], ENT_QUOTES) ?>', this)" class="px-4 py-2 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors inline-flex items-center gap-1">
+                                                        <span class="material-symbols-outlined text-base">delete</span> Delete
+                                                    </button>
                                                 </td>
                                             </tr>
-                                        <?php else: ?>
-                                            <?php foreach ($customers as $cust): ?>
-                                                <tr class="hover:bg-surface-container-low transition-colors group">
-                                                    <td class="p-4 text-on-surface-variant font-medium" style="width: 50px; min-width: 50px; max-width: 50px;"><?= $cust['id'] ?></td>
-                                                    <td class="p-4 font-bold text-primary whitespace-normal break-words" style="width: 150px; min-width: 150px; max-width: 150px;"><?= htmlspecialchars($cust['nama']) ?></td>
-                                                    <td class="p-4 text-on-surface-variant whitespace-normal break-words" style="width: 250px; min-width: 250px; max-width: 250px;"><?= htmlspecialchars($cust['alamat']) ?></td>
-                                                     <td class="p-4 text-on-surface-variant whitespace-normal break-words" style="width: 130px; min-width: 130px; max-width: 130px;">
-                                                         <?php if (!empty($cust['telepon'])): ?>
-                                                             <?php
-                                                             $wa_phone = formatWaNumber($cust['telepon']);
-                                                             if ($cust['latest_order_status'] === 'pending') {
-                                                                 $wa_msg = "Pesanan laundry anda telah dibuat, mohon konfirmasi pembayaran ke admin";
-                                                             } elseif ($cust['latest_order_status'] === 'diproses') {
-                                                                 $wa_msg = "Pesanan laundry anda telah dibuat dan saat ini sedang diproses";
-                                                             } else {
-                                                                 $wa_msg = "Pesanan laundry anda telah dibuat, status saat ini: " . ucwords($cust['latest_order_status']);
-                                                             }
-                                                             $wa_link = "https://wa.me/" . $wa_phone . "?text=" . urlencode($wa_msg);
-                                                             ?>
-                                                             <a href="<?= $wa_link ?>" target="_blank" class="inline-flex items-center gap-1 text-[#035D51] hover:underline font-semibold">
-                                                                 <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                                                                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                                                                 </svg>
-                                                                 <?= htmlspecialchars($cust['telepon']) ?>
-                                                             </a>
-                                                         <?php else: ?>
-                                                             -
-                                                         <?php endif; ?>
-                                                     </td>
-                                                    <td class="p-4 text-on-surface-variant text-sm whitespace-normal" style="width: 120px; min-width: 120px; max-width: 120px;" data-order="<?= strtotime($cust['created_at']) ?>">
-                                                        <?= date('d M Y', strtotime($cust['created_at'])) ?></td>
-                                                    <td class="p-4 text-center" style="width: 100px; min-width: 100px; max-width: 100px;">
-                                                         <button type="button"
-                                                             onclick="deleteCustomer(<?= $cust['id'] ?>, '<?= htmlspecialchars($cust['nama'], ENT_QUOTES) ?>', this)"
-                                                             class="px-4 py-2 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors inline-flex items-center gap-1">
-                                                             <span class="material-symbols-outlined text-base">delete</span> Delete
-                                                         </button>
-                                                     </td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </tbody>
-                                </table>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </div>
-
+                </main>
             </div>
-        </section>
+        </div>
 
         <!-- Modal Notifikasi Pesanan Baru -->
         <div id="new-order-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
@@ -893,7 +878,7 @@ if ($is_admin) {
                         { width: "110px", targets: 3 },
                         { width: "160px", targets: 4 },
                         // Hanya kolom Tanggal (index 1) yang bisa di-sort
-                        { orderable: false, targets: [0, 2, 3, 4, 5, 6, 7, 8, 9] }
+                        { orderable: false, targets: [0, 2, 3, 4, 5, 6, 7, 8] }
                     ],
                     // Pengurutan awal berdasarkan kolom kedua (indeks 1: Tanggal) secara DESC
                     order: [[1, 'desc']],
@@ -947,23 +932,69 @@ if ($is_admin) {
                 });
             });
 
+            function toggleSidebar(show) {
+                const sidebar = $('#admin-sidebar');
+                const overlay = $('#sidebar-overlay');
+                if (show) {
+                    sidebar.removeClass('-translate-x-full');
+                    overlay.removeClass('hidden');
+                } else {
+                    sidebar.addClass('-translate-x-full');
+                    overlay.addClass('hidden');
+                }
+            }
+
+            function toggleDropdown(btn, e) {
+                e.stopPropagation();
+                const container = $(btn).closest('.dropdown-container');
+                const menu = container.find('.dropdown-menu');
+                const arrow = container.find('.arrow-icon');
+                
+                // Close other dropdowns
+                $('.dropdown-menu').not(menu).addClass('opacity-0 invisible');
+                $('.arrow-icon').not(arrow).removeClass('rotate-180');
+                
+                // Toggle current dropdown
+                if (menu.hasClass('opacity-0')) {
+                    menu.removeClass('opacity-0 invisible');
+                    arrow.addClass('rotate-180');
+                } else {
+                    menu.addClass('opacity-0 invisible');
+                    arrow.removeClass('rotate-180');
+                }
+            }
+
+            // Close dropdowns when clicking outside
+            $(document).on('click', function() {
+                $('.dropdown-menu').addClass('opacity-0 invisible');
+                $('.arrow-icon').removeClass('rotate-180');
+            });
+
             function switchTab(tabName) {
-                // Sembunyikan semua konten tab
-                $('.tab-content').addClass('hidden');
+                // Sembunyikan semua section
+                $('.admin-section').addClass('hidden');
                 
-                // Tampilkan konten tab yang aktif
-                $('#tab-content-' + tabName).removeClass('hidden');
+                // Tampilkan section yang aktif
+                $('#section-' + tabName).removeClass('hidden');
                 
-                // Reset styling tombol navigasi
-                $('#btn-tab-pesanan').removeClass('bg-primary text-on-primary shadow-lg shadow-primary/20')
-                                     .addClass('bg-surface-container-high text-on-surface-variant hover:bg-surface-variant');
-                $('#btn-tab-pelanggan').removeClass('bg-primary text-on-primary shadow-lg shadow-primary/20')
-                                       .addClass('bg-surface-container-high text-on-surface-variant hover:bg-surface-variant');
+                // Reset styling tombol navigasi sidebar
+                $('#menu-dashboard').removeClass('bg-primary-fixed text-primary shadow-sm')
+                                     .addClass('text-white/80 hover:text-white hover:bg-white/10');
+                $('#menu-pesanan').removeClass('bg-primary-fixed text-primary shadow-sm')
+                                   .addClass('text-white/80 hover:text-white hover:bg-white/10');
+                $('#menu-pelanggan').removeClass('bg-primary-fixed text-primary shadow-sm')
+                                     .addClass('text-white/80 hover:text-white hover:bg-white/10');
                 
                 // Aktifkan styling tombol yang terpilih
-                $('#btn-tab-' + tabName).removeClass('bg-surface-container-high text-on-surface-variant hover:bg-surface-variant')
-                                         .addClass('bg-primary text-on-primary shadow-lg shadow-primary/20');
+                $('#menu-' + tabName).removeClass('text-white/80 hover:text-white hover:bg-white/10')
+                                       .addClass('bg-primary-fixed text-primary shadow-sm');
                 
+                // Set URL Hash
+                window.location.hash = tabName;
+
+                // Tutup sidebar di mobile jika sedang terbuka
+                toggleSidebar(false);
+
                 // Atur ulang kolom DataTables agar presisi
                 if (tabName === 'pesanan') {
                     $('#orders-table').DataTable().columns.adjust().draw();
@@ -1245,19 +1276,28 @@ if ($is_admin) {
 
             // --- SCROLL & TAB RESTORATION ON REFRESH ---
             window.addEventListener('beforeunload', () => {
-                const activeTab = $('#tab-content-pelanggan').hasClass('hidden') ? 'pesanan' : 'pelanggan';
+                let activeTab = 'dashboard';
+                if (!$('#section-pesanan').hasClass('hidden')) activeTab = 'pesanan';
+                else if (!$('#section-pelanggan').hasClass('hidden')) activeTab = 'pelanggan';
+                
                 sessionStorage.setItem('adminActiveTab', activeTab);
                 sessionStorage.setItem('adminScrollPosition', window.scrollY);
             });
 
             $(document).ready(function() {
+                const hash = window.location.hash.substring(1);
                 const savedTab = sessionStorage.getItem('adminActiveTab');
                 const savedScroll = sessionStorage.getItem('adminScrollPosition');
 
-                if (savedTab) {
-                    switchTab(savedTab);
-                    sessionStorage.removeItem('adminActiveTab');
+                let targetTab = 'dashboard';
+                if (['dashboard', 'pesanan', 'pelanggan'].includes(hash)) {
+                    targetTab = hash;
+                } else if (savedTab && ['dashboard', 'pesanan', 'pelanggan'].includes(savedTab)) {
+                    targetTab = savedTab;
                 }
+
+                switchTab(targetTab);
+                sessionStorage.removeItem('adminActiveTab');
 
                 if (savedScroll) {
                     setTimeout(() => {
