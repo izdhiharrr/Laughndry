@@ -53,9 +53,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $order_id = $_POST['order_id'];
     $new_status = $_POST['new_status'];
     $admin_id = $_SESSION['admin_id'] ?? null;
+    
+    // Update status pesanan
     $stmt = $pdo->prepare("UPDATE `order` SET status = ?, user_id = ? WHERE id = ?");
     $stmt->execute([$new_status, $admin_id, $order_id]);
-    header("Location: admin.php");
+    
+    // Jika pembayaran tunai dan status pesanan diubah ke proses pengerjaan, set status bayar otomatis ke 'Paid'
+    if (!in_array($new_status, ['pending', 'menunggu verifikasi', 'ditolak'])) {
+        $stmt = $pdo->prepare("
+            UPDATE `order` 
+            SET payment_status = 'Paid' 
+            WHERE id = ? AND metode_bayar = 'tunai' AND (payment_status IS NULL OR payment_status = 'Pending' OR payment_status = '')
+        ");
+        $stmt->execute([$order_id]);
+    }
+    
+    header("Location: admin.php#pesanan");
+    exit;
+}
+
+// --- Konfirmasi Pembayaran QRIS ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_payment'])) {
+    $order_id = intval($_POST['order_id']);
+    $admin_id = $_SESSION['admin_id'] ?? null;
+    $stmt = $pdo->prepare("UPDATE `order` SET payment_status = 'Paid', status = 'diproses', user_id = ? WHERE id = ?");
+    $stmt->execute([$admin_id, $order_id]);
+    header("Location: admin.php#pesanan");
+    exit;
+}
+
+// --- Tolak Pembayaran QRIS ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_payment'])) {
+    $order_id = intval($_POST['order_id']);
+    $admin_id = $_SESSION['admin_id'] ?? null;
+    // Set status pembayaran ke 'Ditolak' dan status pesanan ke 'ditolak'
+    $stmt = $pdo->prepare("UPDATE `order` SET payment_status = 'Ditolak', status = 'ditolak', user_id = ? WHERE id = ?");
+    $stmt->execute([$admin_id, $order_id]);
+    header("Location: admin.php#pesanan");
     exit;
 }
 
@@ -96,9 +130,12 @@ if ($is_admin) {
             c.nama AS customer_nama,
             c.id AS customer_id,
             c.telepon AS customer_telepon,
+            c.alamat AS customer_alamat,
             o.total_harga,
             o.metode_bayar,
             o.status,
+            o.payment_status,
+            o.bukti_bayar,
             o.created_at,
             GROUP_CONCAT(DISTINCT oi.kategori SEPARATOR ', ') AS kategori_list,
             GROUP_CONCAT(CONCAT(oi.nama_item, ' (x', oi.qty, ')') SEPARATOR ', ') AS item_list,
@@ -663,13 +700,14 @@ if ($is_admin) {
                                         <th class="p-4 font-bold whitespace-nowrap">Qty</th>
                                         <th class="p-4 font-bold whitespace-nowrap">Harga Total</th>
                                         <th class="p-4 font-bold whitespace-nowrap">Metode Bayar</th>
-                                        <th class="p-4 font-bold whitespace-nowrap">Status</th>
+                                        <th class="p-4 font-bold whitespace-nowrap">Status Pesanan</th>
+                                        <th class="p-4 font-bold whitespace-nowrap text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-outline-variant/20">
                                     <?php if (empty($orders)): ?>
                                         <tr>
-                                            <td colspan="9" class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">Belum ada pesanan.</td>
+                                            <td colspan="10" class="p-8 text-center text-on-surface-variant bg-surface-container-low/30 italic">Belum ada pesanan.</td>
                                         </tr>
                                     <?php else: ?>
                                         <?php foreach ($orders as $order): ?>
@@ -677,6 +715,8 @@ if ($is_admin) {
                                             // Status badge colors
                                             $status_colors = [
                                                 'pending' => 'bg-yellow-100 text-yellow-800',
+                                                'menunggu verifikasi' => 'bg-orange-100 text-orange-800',
+                                                'ditolak' => 'bg-red-100 text-red-800',
                                                 'diproses' => 'bg-blue-100 text-blue-800',
                                                 'cuci' => 'bg-cyan-100 text-cyan-800',
                                                 'setrika' => 'bg-amber-100 text-amber-800',
@@ -701,6 +741,22 @@ if ($is_admin) {
                                             ];
                                             $raw_metode = $order['metode_bayar'] ?? '';
                                             $metode_label = $metode_icons[$raw_metode] ?? ($raw_metode ?: '💳 Online');
+
+                                            // Status Bayar badge
+                                            $pay_status = $order['payment_status'] ?? 'pending';
+                                            $pay_badge = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                                            $pay_text = 'Pending';
+                                            
+                                            if ($pay_status === 'settlement' || strtolower($pay_status) === 'paid') {
+                                                $pay_badge = 'bg-green-100 text-green-800 border-green-200';
+                                                $pay_text = 'Paid';
+                                            } elseif (strtolower($pay_status) === 'menunggu verifikasi') {
+                                                $pay_badge = 'bg-orange-100 text-orange-800 border-orange-200 animate-pulse';
+                                                $pay_text = 'Menunggu Verifikasi';
+                                            } elseif (in_array(strtolower($pay_status), ['deny', 'cancel', 'expire', 'ditolak'])) {
+                                                $pay_badge = 'bg-red-100 text-red-800 border-red-200';
+                                                $pay_text = 'Ditolak';
+                                            }
                                             ?>
                                             <tr class="hover:bg-surface-container-low transition-colors">
                                                 <td class="p-4 font-bold text-primary">#<?= $order['id'] ?></td>
@@ -717,11 +773,33 @@ if ($is_admin) {
                                                         <input type="hidden" name="update_status" value="1">
                                                         <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
                                                         <select name="new_status" onchange="this.form.submit()" class="text-xs font-bold pl-4 pr-8 py-2 rounded-full border-0 cursor-pointer min-w-[120px] <?= $badge ?> focus:ring-2 focus:ring-primary/20">
-                                                            <?php foreach (['pending', 'diproses', 'cuci', 'setrika', 'selesai', 'siap diambil', 'sudah diambil'] as $s): ?>
+                                                            <?php foreach (['pending', 'menunggu verifikasi', 'ditolak', 'diproses', 'cuci', 'setrika', 'selesai', 'siap diambil', 'sudah diambil'] as $s): ?>
                                                                 <option value="<?= $s ?>" <?= $order['status'] === $s ? 'selected' : '' ?>><?= ucwords($s) ?></option>
                                                             <?php endforeach; ?>
                                                         </select>
                                                     </form>
+                                                </td>
+                                                <td class="p-4 text-center">
+                                                    <button type="button" 
+                                                            onclick="showOrderDetail(<?= htmlspecialchars(json_encode([
+                                                                'id' => $order['id'],
+                                                                'tanggal' => date('d M Y, H:i', strtotime($order['created_at'])),
+                                                                'nama' => $order['customer_nama'],
+                                                                'telepon' => $order['customer_telepon'],
+                                                                'alamat' => $order['customer_alamat'] ?? '-',
+                                                                'kategori' => $order['kategori_list'] ?? '-',
+                                                                'items' => $order['item_list'] ?? '-',
+                                                                'qty' => $order['total_qty'] ?? 0,
+                                                                'total' => 'Rp ' . number_format($order['total_harga'], 0, ',', '.'),
+                                                                'metode' => $metode_label,
+                                                                'raw_metode' => $raw_metode,
+                                                                'status_bayar' => $pay_text,
+                                                                'status_pesanan' => $order['status'],
+                                                                'bukti_bayar' => $order['bukti_bayar']
+                                                            ])) ?>)" 
+                                                            class="px-3 py-1.5 bg-[#035D51] text-white font-bold rounded-lg hover:scale-105 active:scale-95 transition-all text-xs flex items-center justify-center gap-1 mx-auto">
+                                                        <span class="material-symbols-outlined text-sm">visibility</span> Detail
+                                                    </button>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -819,7 +897,7 @@ if ($is_admin) {
             </div>
         </div>
 
-        <!-- Modal Notifikasi Pesanan Baru -->
+        <!-- Modal Notifikasi Pesanan Baru (Butuh Verifikasi) -->
         <div id="new-order-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
             <div class="bg-surface-container-lowest max-w-md w-full rounded-[2.5rem] shadow-2xl border border-primary/20 overflow-hidden transform scale-95 transition-transform duration-300">
                 <!-- Header -->
@@ -827,8 +905,8 @@ if ($is_admin) {
                     <div class="w-16 h-16 bg-primary-container rounded-full flex items-center justify-center mx-auto mb-3 animate-bounce">
                         <span class="material-symbols-outlined text-3xl text-on-primary-container">notifications_active</span>
                     </div>
-                    <h3 class="text-xl font-black text-white">Pesanan Baru Masuk!</h3>
-                    <p class="text-xs text-white/80 mt-1">Sistem mendeteksi transaksi baru yang berhasil</p>
+                    <h3 class="text-xl font-black text-white" id="modal-title-text">🔔 Pembayaran Baru Masuk!</h3>
+                    <p class="text-xs text-white/80 mt-1" id="modal-subtitle-text">Sistem mendeteksi transaksi QRIS yang perlu diverifikasi</p>
                 </div>
                 
                 <!-- Content -->
@@ -856,14 +934,119 @@ if ($is_admin) {
                 </div>
                 
                 <!-- Footer Buttons -->
-                <div class="px-6 pb-6">
-                    <button onclick="refreshDashboard()" class="w-full py-3.5 bg-primary text-on-primary hover:scale-[1.02] active:scale-95 font-bold rounded-full text-sm transition-all shadow-lg shadow-primary/20 text-center block">
-                        Proses Sekarang
+                <div class="px-6 pb-6 flex gap-2">
+                    <button onclick="closeNewOrderModal(true)" class="flex-1 py-3 bg-surface-container-high hover:bg-surface-variant text-on-surface-variant font-bold rounded-full text-sm transition-all text-center">
+                        Tutup
+                    </button>
+                    <button id="modal-view-detail-btn" class="flex-1 py-3 bg-primary text-on-primary hover:scale-[1.02] active:scale-95 font-bold rounded-full text-sm transition-all shadow-lg shadow-primary/20 text-center">
+                        Lihat Detail
                     </button>
                 </div>
             </div>
         </div>
 
+        <!-- Modal Detail Pesanan -->
+        <div id="order-detail-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
+            <div class="bg-surface-container-lowest max-w-lg w-full rounded-[2.5rem] shadow-2xl border border-primary/20 overflow-hidden transform scale-95 transition-transform duration-300">
+                <!-- Header -->
+                <div class="bg-primary p-6 text-center text-on-primary">
+                    <h3 class="text-xl font-black text-white" id="detail-modal-title">Detail Pesanan</h3>
+                    <p class="text-xs text-white/80 mt-1" id="detail-modal-date">Tanggal Pesanan</p>
+                </div>
+                
+                <!-- Content -->
+                <div class="p-6 flex flex-col gap-4 max-h-[50vh] overflow-y-auto">
+                    <!-- Customer Data -->
+                    <div class="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/20">
+                        <h4 class="text-xs font-black text-primary uppercase tracking-wider mb-2">Informasi Pelanggan</h4>
+                        <div class="flex flex-col gap-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-on-surface-variant/70 font-semibold">Nama:</span>
+                                <span id="detail-cust-name" class="font-bold text-on-surface"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-on-surface-variant/70 font-semibold">Telepon:</span>
+                                <div class="flex items-center gap-2">
+                                    <span id="detail-cust-phone" class="font-bold text-on-surface"></span>
+                                    <a id="detail-cust-wa-btn" href="#" target="_blank" class="px-2.5 py-1 bg-green-600 text-white font-bold rounded-lg text-xs hover:bg-green-700 transition-colors inline-flex items-center gap-1">
+                                        💬 Chat WA
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-1 mt-1">
+                                <span class="text-on-surface-variant/70 font-semibold">Alamat:</span>
+                                <span id="detail-cust-address" class="text-xs text-on-surface-variant font-medium bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/10 leading-relaxed"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Items Detail -->
+                    <div class="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/20">
+                        <h4 class="text-xs font-black text-primary uppercase tracking-wider mb-2">Layanan & Item</h4>
+                        <div class="flex flex-col gap-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-on-surface-variant/70 font-semibold">Jenis Layanan:</span>
+                                <span id="detail-order-kategori" class="font-bold text-primary"></span>
+                            </div>
+                            <div class="flex flex-col gap-1 mt-1">
+                                <span class="text-on-surface-variant/70 font-semibold">Detail Item:</span>
+                                <p id="detail-order-items" class="text-xs text-on-surface-variant bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/10 font-medium leading-relaxed"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Status -->
+                    <div class="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/20">
+                        <h4 class="text-xs font-black text-primary uppercase tracking-wider mb-2">Status & Pembayaran</h4>
+                        <div class="flex flex-col gap-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-on-surface-variant/70 font-semibold">Metode Bayar:</span>
+                                <span id="detail-order-metode" class="font-bold text-on-surface"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-on-surface-variant/70 font-semibold">Status Bayar:</span>
+                                <span id="detail-order-status-bayar" class="text-xs font-bold px-2.5 py-1 rounded-full border"></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-on-surface-variant/70 font-semibold">Status Pesanan:</span>
+                                <span id="detail-order-status-pesanan" class="text-xs font-black px-2.5 py-1 rounded-full border uppercase"></span>
+                            </div>
+                            <div class="flex justify-between pt-3 border-t border-outline-variant/10 mt-1">
+                                <span class="font-bold text-on-surface-variant">Total Tagihan:</span>
+                                <span id="detail-order-total" class="font-black text-secondary text-base"></span>
+                            </div>
+                    </div>
+
+                    <!-- Bukti Pembayaran -->
+                    <div class="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/20" id="detail-proof-section" style="display: none;">
+                        <h4 class="text-xs font-black text-primary uppercase tracking-wider mb-2">Bukti Pembayaran</h4>
+                        <div class="text-center">
+                            <a id="detail-proof-link" href="#" target="_blank">
+                                <img id="detail-proof-img" src="#" alt="Bukti Transfer" class="max-h-48 rounded-lg border border-outline-variant/10 mx-auto hover:opacity-90 transition-all shadow-sm">
+                            </a>
+                            <p class="text-xs text-on-surface-variant/70 mt-2">Klik gambar untuk melihat resolusi penuh / download</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer / Actions -->
+                <div class="p-6 bg-surface-container-low border-t border-outline-variant/10 flex flex-col gap-2" id="detail-modal-actions">
+                    <!-- Buttons inserted dynamically based on status -->
+                </div>
+            </div>
+        </div>
+
+        <?php
+        $initial_notified_ids = [];
+        if ($is_admin) {
+            foreach ($orders as $o) {
+                if ($o['payment_status'] === 'Menunggu Verifikasi' || 
+                    ($o['metode_bayar'] === 'tunai' && $o['status'] === 'pending')) {
+                    $initial_notified_ids[] = (int) $o['id'];
+                }
+            }
+        }
+        ?>
         <!-- jQuery & DataTables JS -->
         <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
         <script src="https://cdn.datatables.net/2.0.8/js/dataTables.js"></script>
@@ -878,7 +1061,7 @@ if ($is_admin) {
                         { width: "110px", targets: 3 },
                         { width: "160px", targets: 4 },
                         // Hanya kolom Tanggal (index 1) yang bisa di-sort
-                        { orderable: false, targets: [0, 2, 3, 4, 5, 6, 7, 8] }
+                        { orderable: false, targets: [0, 2, 3, 4, 5, 6, 7, 8, 9] }
                     ],
                     // Pengurutan awal berdasarkan kolom kedua (indeks 1: Tanggal) secara DESC
                     order: [[1, 'desc']],
@@ -1178,24 +1361,25 @@ if ($is_admin) {
                     });
             }
 
-            // ═══════════ REAL-TIME NEW ORDER POLLING ═══════════
-            let lastOrderId = <?= $max_order_id ?? 0 ?>;
+            // ═══════════ REAL-TIME NEW ORDER POLLING & VERIFICATION ═══════════
+            // Simpan ID pesanan yang sudah diberitahukan agar tidak double alert
+            const notifiedOrders = <?= json_encode($initial_notified_ids) ?>;
 
             function checkNewOrders() {
-                if (lastOrderId <= 0) return;
-                
-                fetch('check_new_orders.php?last_id=' + lastOrderId)
+                fetch('check_new_orders.php')
                     .then(res => res.json())
                     .then(data => {
                         if (data.success && data.new_orders && data.new_orders.length > 0) {
-                            // Ambil pesanan terbaru (yang terakhir dalam urutan ASC)
-                            const latestOrder = data.new_orders[data.new_orders.length - 1];
-                            
-                            // Update lastOrderId agar tidak memicu notifikasi berulang
-                            lastOrderId = latestOrder.id;
-                            
-                            // Tampilkan modal
-                            showNewOrderModal(latestOrder);
+                            // Saring order yang belum dinotifikasi
+                            data.new_orders.forEach(order => {
+                                const orderId = parseInt(order.id);
+                                if (!notifiedOrders.includes(orderId)) {
+                                    notifiedOrders.push(orderId);
+                                    
+                                    // Tampilkan modal notifikasi
+                                    showNewOrderModal(order);
+                                }
+                            });
                         }
                     })
                     .catch(err => console.error("Error checking new orders:", err));
@@ -1205,6 +1389,15 @@ if ($is_admin) {
                 // Mainkan suara chime
                 playNotificationSound();
                 
+                // Atur judul dan subjudul berdasarkan metode pembayaran
+                if (order.metode_bayar === 'tunai') {
+                    $('#modal-title-text').text('🔔 Pesanan Baru Masuk!');
+                    $('#modal-subtitle-text').text('Sistem mendeteksi pesanan baru dengan metode pembayaran Tunai');
+                } else {
+                    $('#modal-title-text').text('🔔 Pembayaran Baru Masuk!');
+                    $('#modal-subtitle-text').text('Sistem mendeteksi transaksi QRIS yang perlu diverifikasi');
+                }
+
                 // Isi data ke modal
                 $('#modal-order-id').text('#' + order.id);
                 $('#modal-customer-name').text(order.customer_nama);
@@ -1212,6 +1405,38 @@ if ($is_admin) {
                 
                 const formattedHarga = 'Rp ' + parseInt(order.total_harga).toLocaleString('id-ID');
                 $('#modal-total-harga').text(formattedHarga);
+                
+                // Pasang event handler untuk tombol Lihat Detail di modal notifikasi
+                $('#modal-view-detail-btn').off('click').on('click', function() {
+                    closeNewOrderModal(false);
+                    shouldReloadOnDetailClose = true; // Set flag to reload when detail modal is closed
+                    
+                    // Formulasi object details untuk showOrderDetail
+                    const details = {
+                        id: order.id,
+                        tanggal: new Date(order.created_at).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }),
+                        nama: order.customer_nama,
+                        telepon: order.customer_telepon,
+                        alamat: order.customer_alamat || '-',
+                        kategori: order.kategori_list || '-',
+                        items: order.item_list || '-',
+                        qty: order.total_qty || 0,
+                        total: 'Rp ' + parseInt(order.total_harga).toLocaleString('id-ID'),
+                        metode: order.metode_bayar === 'qris' ? '🔲 QRIS' : (order.metode_bayar === 'tunai' ? '💵 Tunai' : order.metode_bayar),
+                        raw_metode: order.metode_bayar,
+                        status_bayar: order.payment_status || 'Pending',
+                        status_pesanan: order.status,
+                        bukti_bayar: order.bukti_bayar
+                    };
+                    
+                    showOrderDetail(details);
+                });
                 
                 // Tampilkan overlay modal
                 const modal = $('#new-order-modal');
@@ -1222,12 +1447,144 @@ if ($is_admin) {
                 }, 50);
             }
 
-            function closeNewOrderModal() {
+            function closeNewOrderModal(shouldReload = false) {
                 const modal = $('#new-order-modal');
                 modal.addClass('opacity-0');
                 modal.find('> div').removeClass('scale-100').addClass('scale-95');
                 setTimeout(() => {
                     modal.addClass('hidden');
+                    if (shouldReload) {
+                        window.location.reload();
+                    }
+                }, 300);
+            }
+
+            function showOrderDetail(details) {
+                // Populate details modal
+                $('#detail-modal-title').text('Detail Pesanan #' + details.id);
+                $('#detail-modal-date').text(details.tanggal);
+                
+                $('#detail-cust-name').text(details.nama);
+                $('#detail-cust-phone').text(details.telepon);
+                
+                // WhatsApp Link
+                let cleanPhone = String(details.telepon || '').replace(/[^0-9]/g, '');
+                if (cleanPhone.startsWith('0')) {
+                    cleanPhone = '62' + cleanPhone.substring(1);
+                }
+                const waMsg = `Halo ${details.nama}, kami dari Laughndry ingin mengonfirmasi pesanan #${details.id} Anda...`;
+                $('#detail-cust-wa-btn').attr('href', `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`);
+                
+                $('#detail-cust-address').text(details.alamat);
+                $('#detail-order-kategori').text(details.kategori);
+                $('#detail-order-items').text(details.items);
+                $('#detail-order-metode').text(details.metode);
+                
+                // Format payment status badge
+                const payStatusSpan = $('#detail-order-status-bayar');
+                payStatusSpan.text(details.status_bayar);
+                payStatusSpan.removeClass(); // clear classes
+                payStatusSpan.addClass('text-xs font-bold px-2.5 py-1 rounded-full border');
+                
+                if (details.status_bayar === 'Paid') {
+                    payStatusSpan.addClass('bg-green-100 text-green-800 border-green-200');
+                } else if (details.status_bayar === 'Menunggu Verifikasi') {
+                    payStatusSpan.addClass('bg-orange-100 text-orange-800 border-orange-200 animate-pulse');
+                } else if (details.status_bayar === 'Ditolak') {
+                    payStatusSpan.addClass('bg-red-100 text-red-800 border-red-200');
+                } else {
+                    payStatusSpan.addClass('bg-yellow-100 text-yellow-800 border-yellow-200');
+                }
+                
+                // Format order status badge
+                const orderStatusSpan = $('#detail-order-status-pesanan');
+                orderStatusSpan.text(details.status_pesanan);
+                orderStatusSpan.removeClass();
+                orderStatusSpan.addClass('text-xs font-black px-2.5 py-1 rounded-full border uppercase');
+                
+                const statusColors = {
+                    'pending': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                    'menunggu verifikasi': 'bg-orange-100 text-orange-800 border-orange-200',
+                    'ditolak': 'bg-red-100 text-red-800 border-red-200',
+                    'diproses': 'bg-blue-100 text-blue-800 border-blue-200',
+                    'cuci': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+                    'setrika': 'bg-amber-100 text-amber-800 border-amber-200',
+                    'selesai': 'bg-green-100 text-green-800 border-green-200',
+                    'siap diambil': 'bg-purple-100 text-purple-800 border-purple-200',
+                    'sudah diambil': 'bg-gray-100 text-gray-600 border-gray-200',
+                };
+                orderStatusSpan.addClass(statusColors[details.status_pesanan] || 'bg-gray-100 text-gray-600 border-gray-200');
+                
+                $('#detail-order-total').text(details.total);
+                
+                // Tampilkan Bukti Pembayaran jika ada
+                const proofSection = $('#detail-proof-section');
+                if (details.bukti_bayar) {
+                    let proofSrc = details.bukti_bayar.startsWith('http') ? details.bukti_bayar : '../uploads/bukti_pembayaran/' + details.bukti_bayar;
+                    $('#detail-proof-img').attr('src', proofSrc);
+                    $('#detail-proof-link').attr('href', proofSrc);
+                    proofSection.show();
+                } else {
+                    proofSection.hide();
+                }
+                
+                // Render Action Buttons in Modal Footer
+                const actionsContainer = $('#detail-modal-actions');
+                actionsContainer.empty();
+                
+                if (details.status_bayar === 'Menunggu Verifikasi' && details.raw_metode === 'qris') {
+                    // Show Confirm & Reject buttons
+                    actionsContainer.append(`
+                        <div class="flex gap-2 w-full mt-2">
+                            <form method="POST" action="admin.php" class="flex-1">
+                                <input type="hidden" name="confirm_payment" value="1">
+                                <input type="hidden" name="order_id" value="${details.id}">
+                                <button type="submit" class="w-full py-3 bg-[#035D51] text-white font-bold rounded-full text-sm hover:scale-[1.02] active:scale-95 transition-all text-center">
+                                    Konfirmasi Pembayaran
+                                </button>
+                            </form>
+                            <form method="POST" action="admin.php" class="flex-1">
+                                <input type="hidden" name="reject_payment" value="1">
+                                <input type="hidden" name="order_id" value="${details.id}">
+                                <button type="submit" class="w-full py-3 bg-red-600 text-white font-bold rounded-full text-sm hover:scale-[1.02] active:scale-95 transition-all text-center">
+                                    Tolak Pembayaran
+                                </button>
+                            </form>
+                        </div>
+                        <button onclick="closeOrderDetailModal()" class="w-full py-2.5 bg-surface-container-high hover:bg-surface-variant text-on-surface-variant font-bold rounded-full text-xs transition-all text-center">
+                            Tutup
+                        </button>
+                    `);
+                } else {
+                    // Just close button
+                    actionsContainer.append(`
+                        <button onclick="closeOrderDetailModal()" class="w-full py-3 bg-[#035D51] text-white font-bold rounded-full text-sm hover:scale-[1.02] active:scale-95 transition-all text-center">
+                            Tutup
+                        </button>
+                    `);
+                }
+                
+                // Show modal
+                const modal = $('#order-detail-modal');
+                modal.removeClass('hidden');
+                setTimeout(() => {
+                    modal.removeClass('opacity-0');
+                    modal.find('> div').removeClass('scale-95').addClass('scale-100');
+                }, 50);
+            }
+
+            let shouldReloadOnDetailClose = false;
+
+            function closeOrderDetailModal() {
+                const modal = $('#order-detail-modal');
+                modal.addClass('opacity-0');
+                modal.find('> div').removeClass('scale-100').addClass('scale-95');
+                setTimeout(() => {
+                    modal.addClass('hidden');
+                    if (shouldReloadOnDetailClose) {
+                        shouldReloadOnDetailClose = false;
+                        window.location.reload();
+                    }
                 }, 300);
             }
 
@@ -1270,9 +1627,7 @@ if ($is_admin) {
             }
 
             // Jalankan polling setiap 5 detik
-            if (lastOrderId > 0) {
-                setInterval(checkNewOrders, 5000);
-            }
+            setInterval(checkNewOrders, 5000);
 
             // --- SCROLL & TAB RESTORATION ON REFRESH ---
             window.addEventListener('beforeunload', () => {

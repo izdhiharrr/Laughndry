@@ -75,8 +75,15 @@ try {
 
     // Tentukan status berdasarkan metode bayar
     $is_tunai       = $input['is_tunai'] ?? false;
-    $order_status   = $is_tunai ? 'pending' : 'diproses';
-    $pay_status     = $is_tunai ? null : 'settlement';
+    $is_qris        = ($payment_type === 'qris' || $payment_type === 'qris_statis');
+    
+    if ($is_tunai || $is_qris) {
+        $order_status = 'pending';
+        $pay_status   = $is_qris ? 'pending' : null;
+    } else {
+        $order_status = 'diproses';
+        $pay_status   = 'settlement';
+    }
 
     $stmt = $pdo->prepare("
         INSERT INTO `order` (customer_id, total_harga, metode_bayar, status, midtrans_order_id, payment_status) 

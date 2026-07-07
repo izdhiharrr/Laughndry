@@ -6,6 +6,10 @@
  * Dokumentasi: https://docs.midtrans.com
  */
 
+// Toggle untuk mengaktifkan/menonaktifkan Midtrans (ubah ke true jika ingin mengaktifkan kembali)
+define('MIDTRANS_ENABLED', false);
+
+
 // Load autoloader dan dotenv jika tersedia
 if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
     require_once __DIR__ . '/../vendor/autoload.php';

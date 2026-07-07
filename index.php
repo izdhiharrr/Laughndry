@@ -274,6 +274,7 @@ function trackOrder(event) {
             // Hitung jumlah pesanan per kategori status
             let countAll = data.orders.length;
             let countPending = data.orders.filter(o => o.status === 'pending').length;
+            let countVerifikasi = data.orders.filter(o => o.status === 'menunggu verifikasi').length;
             let countDiproses = data.orders.filter(o => o.status === 'diproses').length;
             let countCuci = data.orders.filter(o => o.status === 'cuci').length;
             let countSetrika = data.orders.filter(o => o.status === 'setrika').length;
@@ -292,7 +293,8 @@ function trackOrder(event) {
                 <!-- Tab Filters (Horizontal Scrollable on Mobile) -->
                 <div class="flex overflow-x-auto justify-start md:justify-center gap-2 mb-6 pb-2" id="order-tabs" style="scrollbar-width: none; -ms-overflow-style: none;">
                     <button onclick="filterOrders('all')" id="tab-all" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-[#035D51] text-white shadow-md shadow-[#035D51]/20 shrink-0">Semua (${countAll})</button>
-                    <button onclick="filterOrders('pending')" id="tab-pending" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Pending (${countPending})</button>
+                    <button onclick="filterOrders('pending')" id="tab-pending" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Menunggu Pembayaran (${countPending})</button>
+                    <button onclick="filterOrders('menunggu-verifikasi')" id="tab-menunggu-verifikasi" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Menunggu Verifikasi (${countVerifikasi})</button>
                     <button onclick="filterOrders('diproses')" id="tab-diproses" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Diproses (${countDiproses})</button>
                     <button onclick="filterOrders('cuci')" id="tab-cuci" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Cuci (${countCuci})</button>
                     <button onclick="filterOrders('setrika')" id="tab-setrika" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Setrika (${countSetrika})</button>
@@ -307,6 +309,8 @@ function trackOrder(event) {
                 // Konfigurasi badge status
                 const statusColors = {
                     'pending': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                    'menunggu verifikasi': 'bg-orange-100 text-orange-800 border-orange-200',
+                    'ditolak': 'bg-red-100 text-red-800 border-red-200',
                     'diproses': 'bg-blue-100 text-blue-800 border-blue-200',
                     'cuci': 'bg-cyan-100 text-cyan-800 border-cyan-200',
                     'setrika': 'bg-amber-100 text-amber-800 border-amber-200',
@@ -314,7 +318,19 @@ function trackOrder(event) {
                     'siap diambil': 'bg-purple-100 text-purple-800 border-purple-200',
                     'sudah diambil': 'bg-zinc-100 text-zinc-600 border-zinc-200',
                 };
+                const statusTexts = {
+                    'pending': 'MENUNGGU PEMBAYARAN',
+                    'menunggu verifikasi': 'MENUNGGU VERIFIKASI',
+                    'ditolak': 'PESANAN DITOLAK',
+                    'diproses': 'DIPROSES',
+                    'cuci': 'CUCI',
+                    'setrika': 'SETRIKA',
+                    'selesai': 'SELESAI',
+                    'siap diambil': 'SIAP DIAMBIL',
+                    'sudah diambil': 'SUDAH DIAMBIL'
+                };
                 const badgeClass = statusColors[order.status] || 'bg-zinc-100 text-zinc-600 border-zinc-200';
+                const statusText = statusTexts[order.status] || order.status.toUpperCase();
                 
                 // Formulasi harga rupiah
                 const formattedHarga = 'Rp ' + parseInt(order.total_harga).toLocaleString('id-ID');
@@ -338,7 +354,7 @@ function trackOrder(event) {
                                 <span class="text-xs text-on-surface-variant/70 font-semibold block mt-0.5">${formattedDate}</span>
                             </div>
                             <span class="text-xs font-black px-3.5 py-1.5 rounded-full border ${badgeClass} uppercase tracking-wider">
-                                ${order.status}
+                                ${statusText}
                             </span>
                         </div>
 
@@ -385,7 +401,7 @@ function trackOrder(event) {
             
             // Definisikan fungsi filter global
             window.filterOrders = function(group) {
-                const tabs = ['all', 'pending', 'diproses', 'cuci', 'setrika', 'selesai', 'siap diambil', 'sudah diambil'];
+                const tabs = ['all', 'pending', 'menunggu verifikasi', 'diproses', 'cuci', 'setrika', 'selesai', 'siap diambil', 'sudah diambil'];
                 
                 // Reset styling semua tab
                 tabs.forEach(t => {

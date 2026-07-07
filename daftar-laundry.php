@@ -16,8 +16,10 @@ require_once __DIR__ . '/config/midtrans.php';
     <link rel="canonical" href="https://laughndry.my.id/daftar-laundry.php" />
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-    <!-- Midtrans Snap JS -->
-    <script src="<?= MIDTRANS_SNAP_JS_URL ?>" data-client-key="<?= MIDTRANS_CLIENT_KEY ?>"></script>
+    <!-- Midtrans Snap JS (hanya dimuat jika Midtrans aktif) -->
+    <?php if (defined('MIDTRANS_ENABLED') && MIDTRANS_ENABLED): ?>
+        <script src="<?= MIDTRANS_SNAP_JS_URL ?>" data-client-key="<?= MIDTRANS_CLIENT_KEY ?>"></script>
+    <?php endif; ?>
     <style>
         body {
             background: #f8fafc;
@@ -756,7 +758,7 @@ require_once __DIR__ . '/config/midtrans.php';
                     </div>
                     <div class="input-group">
                         <label class="input-label" for="customer-phone">Nomor Telepon</label>
-                        <input type="tel" class="form-input" id="customer-phone" placeholder="Contoh: 08123456789">
+                        <input type="tel" class="form-input" id="customer-phone" placeholder="Contoh: 08123456789" maxlength="13">
                         <div class="input-error-msg" id="error-phone">Nomor telepon wajib diisi</div>
                     </div>
                     <div class="input-group">
@@ -777,9 +779,9 @@ require_once __DIR__ . '/config/midtrans.php';
                         <label class="payment-method-card">
                             <input type="radio" name="checkout_method" value="online" checked>
                             <div class="card-content">
-                                <span class="material-symbols-outlined icon">credit_card</span>
-                                <span>Bayar Online</span>
-                                <span style="font-size:0.7rem;color:#6b7280;font-weight:400;">QRIS, VA, GoPay, dll</span>
+                                <span class="material-symbols-outlined icon">qr_code_2</span>
+                                <span>QRIS</span>
+                                <span style="font-size:0.7rem;color:#6b7280;font-weight:400;">DANA, OVO, GoPay, dll</span>
                             </div>
                         </label>
                         <label class="payment-method-card">
@@ -820,6 +822,78 @@ require_once __DIR__ . '/config/midtrans.php';
                 }
             </style>
         </div>
+
+        <!-- QRIS Payment View (Hidden by default) -->
+        <div id="qris-view" style="display: none;">
+            <div class="cart-title">
+                <span class="material-symbols-outlined" style="font-size:2.2rem; color: #00433a;">qr_code_2</span>
+                Pembayaran QRIS
+            </div>
+            <div class="payment-content-scroll">
+                <div class="customer-info-section" style="margin-top: 10px; margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">Nama Pelanggan</span>
+                        <span id="qris-cust-name" style="font-weight: 700; color: #1f2937;">-</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">No Telepon</span>
+                        <span id="qris-cust-phone" style="font-weight: 700; color: #1f2937;">-</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px;">
+                        <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">Detail Item</span>
+                        <p id="qris-order-items" style="color: #4b5563; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.75rem; margin: 0; line-height: 1.4;"></p>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #e2e8f0;">
+                        <span style="font-weight: 600; color: #4b5563; font-size: 0.95rem;">Total Biaya</span>
+                        <span id="qris-total-price" style="font-weight: 800; color: #865300; font-size: 1.15rem;">Rp 0</span>
+                    </div>
+                </div>
+
+                <!-- QRIS Image Section -->
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <p style="font-size: 0.8rem; color: #4b5563; font-weight: 600; margin-bottom: 12px;">Silakan scan kode QRIS di bawah untuk melakukan pembayaran:</p>
+                    <img src="assets/gambar/qris_statis.png" alt="QRIS Code" style="margin: 0 auto 12px; max-width: 240px; width: 100%; height: auto; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; display: block;">
+                    
+                    <!-- Download QRIS Button -->
+                    <a href="assets/gambar/qris_statis.png" download="qris_laughndry.png" style="display: inline-flex; align-items: center; gap: 8px; background: #00433a; color: #fff; padding: 10px 20px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; text-decoration: none; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0, 67, 58, 0.2); transition: all 0.3s; cursor: pointer;" class="hover:scale-105 active:scale-95">
+                        <span class="material-symbols-outlined" style="font-size: 1.15rem;">download</span> Simpan Kode QRIS
+                    </a>
+
+                    <p style="font-size: 0.7rem; color: #6b7280; line-height: 1.3; margin-bottom: 20px;">Mendukung pembayaran dari e-wallet (DANA, OVO, GoPay, ShopeePay, LinkAja) & seluruh aplikasi Mobile Banking.</p>
+
+                    <!-- Upload Bukti Pembayaran (Wajib) -->
+                    <div style="text-align: left; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-top: 15px;">
+                        <p style="font-size: 0.8rem; color: #4b5563; font-weight: 700; margin-top: 0; margin-bottom: 10px;">Upload Bukti Pembayaran (Wajib):</p>
+                        
+                        <label for="qris-proof-file" style="display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed #00433a; border-radius: 12px; padding: 20px; cursor: pointer; background: #fff; transition: all 0.3s;" id="upload-label" class="hover:bg-[#f0f5f4] hover:border-secondary">
+                            <span class="material-symbols-outlined" style="font-size: 2.2rem; color: #00433a; margin-bottom: 4px;">cloud_upload</span>
+                            <span style="font-size: 0.75rem; font-weight: 700; color: #00433a;" id="upload-text">Pilih Foto Bukti Bayar</span>
+                            <span style="font-size: 0.65rem; color: #9ca3af; margin-top: 2px;">Format: JPG, PNG (Maks 2MB)</span>
+                            <input type="file" id="qris-proof-file" accept="image/*" style="display: none;">
+                        </label>
+
+                        <!-- OCR Loading/Status Indicator -->
+                        <div id="ocr-loading" style="display: none; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed #035D51; border-radius: 12px; padding: 20px; background: #f0fdfa; text-align: center; gap: 10px;">
+                            <div style="width: 32px; height: 32px; border: 4px solid #e2e8f0; border-top-color: #035D51; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span style="font-size: 0.8rem; font-weight: 700; color: #035D51;">Menganalisis Foto Bukti Pembayaran...</span>
+                            <span style="font-size: 0.65rem; color: #0f766e;" id="ocr-progress">Menyiapkan AI...</span>
+                        </div>
+                        
+                        <div id="proof-preview-container" style="display: none; margin-top: 10px; text-align: center;">
+                            <img id="proof-preview" src="#" alt="Preview" style="max-height: 150px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 0 auto; display: block;">
+                            <button type="button" id="btn-remove-proof" style="margin-top: 8px; font-size: 0.75rem; color: #ef4444; font-weight: 700; cursor: pointer; border: none; background: transparent; display: inline-flex; align-items: center; gap: 4px; justify-content: center; width: 100%;">
+                                <span class="material-symbols-outlined" style="font-size: 0.95rem;">delete</span> Hapus Foto
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button id="btn-qris-paid" class="cart-btn btn-primary" style="width: 100%; cursor: not-allowed; opacity: 0.6;" disabled>Saya Sudah Bayar</button>
+            </div>
+        </div>
     </div>
 
 
@@ -837,7 +911,12 @@ require_once __DIR__ . '/config/midtrans.php';
         </div>
     </div>
 
+    <!-- Tesseract.js OCR Library -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
     <script>
+        const MIDTRANS_ENABLED = <?= (defined('MIDTRANS_ENABLED') && MIDTRANS_ENABLED) ? 'true' : 'false' ?>;
+
         // Ambil data keranjang dari sessionStorage
         let cart = JSON.parse(sessionStorage.getItem('cart')) || [];
 
@@ -944,6 +1023,10 @@ require_once __DIR__ . '/config/midtrans.php';
             cartView.style.display = 'block';
         });
 
+        document.getElementById('customer-phone').addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '').slice(0, 13);
+        });
+
         // ═══════════════════════════════════════════
         // CHECKOUT: Validate → Pilih metode → Proses
         // ═══════════════════════════════════════════
@@ -1013,76 +1096,297 @@ require_once __DIR__ . '/config/midtrans.php';
                         document.getElementById('checkout-loading').style.display = 'none';
                     });
             } else {
-                // ══════ ONLINE (MIDTRANS): Snap Token → Bayar → Simpan ke DB ══════
-                fetch('api/snap_token.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(checkoutData)
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success && data.snap_token) {
-                            window.snap.pay(data.snap_token, {
-                                onSuccess: function (result) {
-                                    console.log('Payment success:', result);
-                                    fetch('api/checkout.php', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                            ...checkoutData,
-                                            payment_type: result.payment_type || 'midtrans',
-                                            midtrans_order_id: data.midtrans_order_id
-                                        })
-                                    })
-                                        .then(r => r.text())
-                                        .then(text => {
-                                            try {
-                                                const saveResult = JSON.parse(text);
-                                                if (saveResult.success) {
-                                                    document.getElementById('success-message-text').innerText = 'Pembayaran online berhasil! Terima kasih telah mempercayakan cucian Anda kepada Laughndry. Kurir kami akan segera menjemput pakaian Anda.';
-                                                    document.getElementById('success-modal').classList.add('show');
-                                                } else {
-                                                    alert('Pembayaran berhasil, tapi gagal menyimpan: ' + saveResult.message);
-                                                }
-                                            } catch (e) {
-                                                console.error('Non-JSON response:', text);
-                                                alert('Pembayaran berhasil, tetapi terjadi error server saat menyimpan: ' + text.substring(0, 300));
-                                            }
-                                        })
-                                        .catch(err => {
-                                            console.error('Save order error:', err);
-                                            alert('Pembayaran berhasil, tetapi terjadi kesalahan jaringan saat menyimpan pesanan. Silakan hubungi admin.');
-                                        });
-                                },
-                                onPending: function (result) {
-                                    console.log('Payment pending:', result);
-                                    alert('Pembayaran menunggu konfirmasi. Silakan selesaikan pembayaran Anda.');
-                                },
-                                onError: function (result) {
-                                    console.error('Payment error:', result);
-                                    alert('Pembayaran gagal. Silakan coba lagi.');
-                                },
-                                onClose: function () {
-                                    console.log('Snap popup closed — tidak ada data disimpan');
-                                }
-                            });
-                        } else {
-                            alert('Gagal memproses: ' + (data.message || 'Unknown error'));
-                        }
+                if (MIDTRANS_ENABLED) {
+                    // ══════ ONLINE (MIDTRANS): Snap Token → Bayar → Simpan ke DB ══════
+                    fetch('api/snap_token.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(checkoutData)
                     })
-                    .catch(() => alert('Terjadi kesalahan jaringan. Coba lagi.'))
-                    .finally(() => {
-                        btnConfirm.disabled = false;
-                        btnConfirm.textContent = 'Bayar Sekarang';
-                        document.getElementById('checkout-loading').style.display = 'none';
-                    });
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success && data.snap_token) {
+                                window.snap.pay(data.snap_token, {
+                                    onSuccess: function (result) {
+                                        console.log('Payment success:', result);
+                                        fetch('api/checkout.php', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                ...checkoutData,
+                                                payment_type: result.payment_type || 'midtrans',
+                                                midtrans_order_id: data.midtrans_order_id
+                                            })
+                                        })
+                                            .then(r => r.text())
+                                            .then(text => {
+                                                try {
+                                                    const saveResult = JSON.parse(text);
+                                                    if (saveResult.success) {
+                                                        document.getElementById('success-message-text').innerText = 'Pembayaran online berhasil! Terima kasih telah mempercayakan cucian Anda kepada Laughndry. Kurir kami akan segera menjemput pakaian Anda.';
+                                                        document.getElementById('success-modal').classList.add('show');
+                                                    } else {
+                                                        alert('Pembayaran berhasil, tapi gagal menyimpan: ' + saveResult.message);
+                                                    }
+                                                } catch (e) {
+                                                    console.error('Non-JSON response:', text);
+                                                    alert('Pembayaran berhasil, tetapi terjadi error server saat menyimpan: ' + text.substring(0, 300));
+                                                }
+                                            })
+                                            .catch(err => {
+                                                console.error('Save order error:', err);
+                                                alert('Pembayaran berhasil, tetapi terjadi kesalahan jaringan saat menyimpan pesanan. Silakan hubungi admin.');
+                                            });
+                                    },
+                                    onPending: function (result) {
+                                        console.log('Payment pending:', result);
+                                        alert('Pembayaran menunggu konfirmasi. Silakan selesaikan pembayaran Anda.');
+                                    },
+                                    onError: function (result) {
+                                        console.error('Payment error:', result);
+                                        alert('Pembayaran gagal. Silakan coba lagi.');
+                                    },
+                                    onClose: function () {
+                                        console.log('Snap popup closed — tidak ada data disimpan');
+                                    }
+                                });
+                            } else {
+                                alert('Gagal memproses: ' + (data.message || 'Unknown error'));
+                            }
+                        })
+                        .catch(() => alert('Terjadi kesalahan jaringan. Coba lagi.'))
+                        .finally(() => {
+                            btnConfirm.disabled = false;
+                            btnConfirm.textContent = 'Bayar Sekarang';
+                            document.getElementById('checkout-loading').style.display = 'none';
+                        });
+                } else {
+                    // ══════ QRIS: Simpan ke DB dengan status pending & tunjukkan QRIS ══════
+                    fetch('api/checkout.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...checkoutData, payment_type: 'qris', is_tunai: false })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success && data.order_id) {
+                                showQrisPaymentScreen(data.order_id, data.total_harga, checkoutData);
+                            } else {
+                                alert('Gagal memproses pesanan: ' + (data.message || 'Unknown error'));
+                            }
+                        })
+                        .catch(err => {
+                            console.error('QRIS checkout error:', err);
+                            alert('Terjadi kesalahan jaringan. Coba lagi.');
+                        })
+                        .finally(() => {
+                            btnConfirm.disabled = false;
+                            btnConfirm.textContent = 'Bayar Sekarang';
+                            document.getElementById('checkout-loading').style.display = 'none';
+                        });
+                }
             }
+        });
+
+        function showQrisPaymentScreen(orderId, totalHarga, customerData) {
+            document.getElementById('qris-cust-name').innerText = customerData.nama;
+            document.getElementById('qris-cust-phone').innerText = customerData.telepon;
+            
+            const itemNames = cart.map(item => `${item.name} (x${item.qty || 1})`).join(', ');
+            document.getElementById('qris-order-items').innerText = itemNames;
+            document.getElementById('qris-total-price').innerText = 'Rp ' + totalHarga.toLocaleString('id-ID');
+            document.getElementById('btn-qris-paid').setAttribute('data-order-id', orderId);
+            
+            document.getElementById('payment-view').style.display = 'none';
+            document.getElementById('qris-view').style.display = 'block';
+        }
+
+        // Event listeners untuk unggah bukti pembayaran QRIS
+        document.getElementById('qris-proof-file').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Validasi ukuran (maks 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('Ukuran berkas terlalu besar. Maksimal 2MB.');
+                    event.target.value = '';
+                    return;
+                }
+                // Validasi tipe file
+                const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+                if (!validTypes.includes(file.type)) {
+                    alert('Format berkas tidak valid. Harap pilih gambar JPG atau PNG.');
+                    event.target.value = '';
+                    return;
+                }
+
+                // Tunjukkan indikator loading analisis OCR
+                document.getElementById('upload-label').style.display = 'none';
+                document.getElementById('ocr-loading').style.display = 'flex';
+                document.getElementById('ocr-progress').innerText = 'Menyiapkan AI...';
+
+                // Jalankan Tesseract OCR
+                Tesseract.recognize(
+                    file,
+                    'eng',
+                    {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                document.getElementById('ocr-progress').innerText = `Membaca teks (${Math.round(m.progress * 100)}%)...`;
+                            } else {
+                                document.getElementById('ocr-progress').innerText = `Menganalisis (${m.status})...`;
+                            }
+                        }
+                    }
+                ).then(({ data: { text } }) => {
+                    const extractedText = text.toLowerCase();
+                    console.log("OCR Extracted Text:\n", extractedText);
+
+                    // Validasi khusus merchant toko (Wajib mengandung nama merchant atau PAN merchant)
+                    const hasMerchant = extractedText.includes('laughndry') || 
+                                        extractedText.includes('laughndr') || 
+                                        extractedText.includes('9360000801649145786');
+
+                    // Daftar kata kunci resi perbankan/e-wallet Indonesia (umum)
+                    const keywords = [
+                        'rp', 'transfer', 'nominal', 'transaksi', 'sukses', 'berhasil', 
+                        'bayar', 'pembayaran', 'qris', 'bank', 'gopay', 'ovo', 'dana', 
+                        'linkaja', 'shopee', 'rekening', 'total', 'jumlah', 'success', 'send'
+                    ];
+
+                    // Hitung kecocokan kata kunci umum
+                    let matchCount = 0;
+                    keywords.forEach(keyword => {
+                        if (extractedText.includes(keyword)) {
+                            matchCount++;
+                        }
+                    });
+
+                    // Syarat Lolos: Wajib ada info merchant toko AND minimal 2 kata kunci transaksi umum
+                    if (hasMerchant && matchCount >= 2) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            document.getElementById('proof-preview').src = e.target.result;
+                            document.getElementById('ocr-loading').style.display = 'none';
+                            document.getElementById('proof-preview-container').style.display = 'block';
+                            
+                            // Aktifkan tombol "Saya Sudah Bayar"
+                            const btnQrisPaid = document.getElementById('btn-qris-paid');
+                            btnQrisPaid.disabled = false;
+                            btnQrisPaid.style.cursor = 'pointer';
+                            btnQrisPaid.style.opacity = '1';
+                        }
+                        reader.readAsDataURL(file);
+                    } else {
+                        alert('Berkas tidak terdeteksi sebagai resi pembayaran yang sah untuk LAUGHNDRY.\n\nPastikan screenshot resi Anda jelas dan terbaca. Jika sistem tetap menolak, Anda dapat menghubungi kami via WhatsApp untuk verifikasi manual.');
+                        
+                        event.target.value = '';
+                        document.getElementById('ocr-loading').style.display = 'none';
+                        document.getElementById('upload-label').style.display = 'flex';
+                        
+                        // Tetap nonaktifkan tombol
+                        const btnQrisPaid = document.getElementById('btn-qris-paid');
+                        btnQrisPaid.disabled = true;
+                        btnQrisPaid.style.cursor = 'not-allowed';
+                        btnQrisPaid.style.opacity = '0.6';
+                    }
+                }).catch(err => {
+                    console.error("OCR Error:", err);
+                    alert('Gagal menganalisis resi pembayaran.\n\nHarap pastikan koneksi internet Anda stabil dan coba lagi. Jika sistem tetap menolak, Anda dapat menghubungi kami via WhatsApp untuk verifikasi manual.');
+                    
+                    event.target.value = '';
+                    document.getElementById('ocr-loading').style.display = 'none';
+                    document.getElementById('upload-label').style.display = 'flex';
+                    
+                    const btnQrisPaid = document.getElementById('btn-qris-paid');
+                    btnQrisPaid.disabled = true;
+                    btnQrisPaid.style.cursor = 'not-allowed';
+                    btnQrisPaid.style.opacity = '0.6';
+                });
+            }
+        });
+
+        document.getElementById('btn-remove-proof').addEventListener('click', function() {
+            document.getElementById('qris-proof-file').value = '';
+            document.getElementById('proof-preview-container').style.display = 'none';
+            document.getElementById('upload-label').style.display = 'flex';
+            
+            // Nonaktifkan kembali tombol "Saya Sudah Bayar"
+            const btnQrisPaid = document.getElementById('btn-qris-paid');
+            btnQrisPaid.disabled = true;
+            btnQrisPaid.style.cursor = 'not-allowed';
+            btnQrisPaid.style.opacity = '0.6';
+        });
+
+        document.getElementById('btn-qris-paid').addEventListener('click', () => {
+            const btnQrisPaid = document.getElementById('btn-qris-paid');
+            const orderId = btnQrisPaid.getAttribute('data-order-id');
+            const fileInput = document.getElementById('qris-proof-file');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Silakan pilih dan upload foto bukti pembayaran terlebih dahulu.');
+                return;
+            }
+
+            btnQrisPaid.disabled = true;
+            btnQrisPaid.textContent = 'Memproses...';
+            
+            // Mengirim data menggunakan FormData untuk mengunggah file
+            const formData = new FormData();
+            formData.append('order_id', orderId);
+            formData.append('bukti_bayar', fileInput.files[0]);
+
+            fetch('api/confirm_payment.php', {
+                method: 'POST',
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('success-title').innerText = 'Menunggu Verifikasi';
+                        document.getElementById('success-message-text').innerText = 'Pembayaran Anda telah kami terima dan sedang dalam proses verifikasi oleh admin. Silakan tunggu beberapa saat atau hubungi kami melalui WhatsApp. Anda bisa melacak pesanan Anda di menu lacak.';
+                        document.getElementById('success-icon').style.background = '#FBAD48';
+                        document.getElementById('success-icon').style.boxShadow = '0 0 0 10px rgba(251, 173, 72, 0.2)';
+                        document.getElementById('success-icon-symbol').innerText = 'hourglass_empty';
+                        document.getElementById('success-btn').style.background = '#FBAD48';
+                        document.getElementById('success-modal').classList.add('show');
+                        
+                        document.getElementById('qris-view').style.display = 'none';
+                    } else {
+                        alert('Gagal mengonfirmasi pembayaran: ' + (data.message || 'Unknown error'));
+                        btnQrisPaid.disabled = false;
+                        btnQrisPaid.textContent = 'Saya Sudah Bayar';
+                    }
+                })
+                .catch(err => {
+                    console.error('Confirm payment error:', err);
+                    alert('Terjadi kesalahan jaringan. Coba lagi.');
+                    btnQrisPaid.disabled = false;
+                    btnQrisPaid.textContent = 'Saya Sudah Bayar';
+                });
         });
 
         // ═══════════════════════════════════════════
         // Success Modal — Reset & Kembali
         // ═══════════════════════════════════════════
         function closeSuccessModal() {
+            // Reset upload file elements
+            if (document.getElementById('qris-proof-file')) {
+                document.getElementById('qris-proof-file').value = '';
+            }
+            if (document.getElementById('proof-preview-container')) {
+                document.getElementById('proof-preview-container').style.display = 'none';
+            }
+            if (document.getElementById('upload-label')) {
+                document.getElementById('upload-label').style.display = 'flex';
+            }
+            const btnQrisPaid = document.getElementById('btn-qris-paid');
+            if (btnQrisPaid) {
+                btnQrisPaid.disabled = true;
+                btnQrisPaid.style.cursor = 'not-allowed';
+                btnQrisPaid.style.opacity = '0.6';
+                btnQrisPaid.textContent = 'Saya Sudah Bayar';
+            }
+
             document.getElementById('success-modal').classList.remove('show');
             sessionStorage.removeItem('cart');
             cart = [];
