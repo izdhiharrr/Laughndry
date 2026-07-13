@@ -158,6 +158,55 @@ try {
             }
         }
 
+        // Lakukan verifikasi OCR via Cloud API (OCR.space)
+        $bypass_ocr = (getenv('BYPASS_OCR_CHECK') === 'true' || getenv('TESTING_MODE') === 'true' || $is_developer_testing);
+        if (!$bypass_ocr) {
+            require_once __DIR__ . '/../config/ocr.php';
+            
+            $extracted_text = perform_ocr($file['tmp_name']);
+            if ($extracted_text === false) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Gagal membaca gambar bukti pembayaran. Pastikan gambar jelas dan merupakan file gambar resi asli.']);
+                exit;
+            }
+            
+            $extracted_text_lc = strtolower($extracted_text);
+            
+            // Validasi nama merchant Laughndry atau PAN ID
+            $has_merchant = (strpos($extracted_text_lc, 'laughndry') !== false || 
+                             strpos($extracted_text_lc, 'laughndr') !== false || 
+                             strpos($extracted_text_lc, '9360000801649145786') !== false);
+            
+            // Validasi kata kunci umum transaksi keuangan Indonesia
+            $keywords = [
+                'rp', 'transfer', 'nominal', 'transaksi', 'sukses', 'berhasil', 
+                'bayar', 'pembayaran', 'qris', 'bank', 'gopay', 'ovo', 'dana', 
+                'linkaja', 'shopee', 'rekening', 'total', 'jumlah', 'success', 'send'
+            ];
+            
+            $match_count = 0;
+            foreach ($keywords as $kw) {
+                if (strpos($extracted_text_lc, $kw) !== false) {
+                    $match_count++;
+                }
+            }
+            
+            if (!$has_merchant || $match_count < 2) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Bukti pembayaran ditolak. Pastikan gambar yang diunggah adalah resi transfer asli berisikan pembayaran ke LAUGHNDRY.'
+                ]);
+                exit;
+            }
+        }
+
         $uploaded = false;
 
         // Proses unggah ke Cloudinary jika diaktifkan
