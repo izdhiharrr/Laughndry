@@ -937,6 +937,7 @@ require_once __DIR__ . '/config/midtrans.php';
         const cartTotal = document.getElementById('cart-total');
         let total = 0;
         let currentCheckoutData = null;
+        let pollInterval = null;
 
         function renderCart() {
             cartList.innerHTML = '';
@@ -1304,10 +1305,64 @@ require_once __DIR__ . '/config/midtrans.php';
                         document.getElementById('success-icon').style.boxShadow = '0 0 0 10px rgba(251, 173, 72, 0.2)';
                         document.getElementById('success-icon-symbol').innerText = 'hourglass_empty';
                         document.getElementById('success-btn').style.background = '#FBAD48';
+                        document.getElementById('success-btn').style.boxShadow = '0 4px 12px rgba(251, 173, 72, 0.2)';
                         document.getElementById('success-modal').classList.add('show');
                         
                         document.getElementById('qris-view').style.display = 'none';
                         currentCheckoutData = null; // Reset
+
+                        // Clear any existing poll
+                        if (pollInterval) clearInterval(pollInterval);
+                        
+                        // Start polling order status
+                        if (data.order_id) {
+                            pollInterval = setInterval(() => {
+                                fetch(`api/get_order_status.php?order_id=${data.order_id}`)
+                                    .then(res => res.json())
+                                    .then(statusData => {
+                                        if (statusData.success) {
+                                            if (statusData.status !== 'menunggu verifikasi' && statusData.status !== 'pending' && statusData.status !== 'ditolak') {
+                                                // Verified/Confirmed!
+                                                clearInterval(pollInterval);
+                                                pollInterval = null;
+                                                
+                                                // Update UI to Success Green
+                                                document.getElementById('success-title').innerText = 'Pesanan Sudah Diverifikasi';
+                                                document.getElementById('success-message-text').innerText = 'Pembayaran Anda telah sukses diverifikasi oleh admin! Cucian Anda sekarang sedang diproses. Anda bisa kembali ke beranda atau melacak status cucian di menu Lacak.';
+                                                
+                                                const successIcon = document.getElementById('success-icon');
+                                                successIcon.style.background = '#10b981'; // Green
+                                                successIcon.style.boxShadow = '0 0 0 10px #ecfdf5';
+                                                
+                                                document.getElementById('success-icon-symbol').innerText = 'check'; // Check icon
+                                                
+                                                const successBtn = document.getElementById('success-btn');
+                                                successBtn.style.background = '#10b981'; // Green button
+                                                successBtn.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.2)';
+                                            } else if (statusData.status === 'ditolak') {
+                                                // Rejected!
+                                                clearInterval(pollInterval);
+                                                pollInterval = null;
+                                                
+                                                // Update UI to Rejected Red
+                                                document.getElementById('success-title').innerText = 'Pembayaran Ditolak';
+                                                document.getElementById('success-message-text').innerText = 'Maaf, pembayaran Anda ditolak oleh admin. Silakan periksa detailnya atau hubungi kami melalui WhatsApp untuk konfirmasi ulang.';
+                                                
+                                                const successIcon = document.getElementById('success-icon');
+                                                successIcon.style.background = '#ef4444'; // Red
+                                                successIcon.style.boxShadow = '0 0 0 10px #fee2e2';
+                                                
+                                                document.getElementById('success-icon-symbol').innerText = 'close'; // Close icon
+                                                
+                                                const successBtn = document.getElementById('success-btn');
+                                                successBtn.style.background = '#ef4444'; // Red button
+                                                successBtn.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.2)';
+                                            }
+                                        }
+                                    })
+                                    .catch(err => console.error('Error polling status:', err));
+                            }, 3000);
+                        }
                     } else {
                         alert('Gagal mengonfirmasi pembayaran: ' + (data.message || 'Unknown error'));
                         btnQrisPaid.disabled = false;
@@ -1326,6 +1381,10 @@ require_once __DIR__ . '/config/midtrans.php';
         // Success Modal — Reset & Kembali
         // ═══════════════════════════════════════════
         function closeSuccessModal() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
             // Reset upload file elements
             if (document.getElementById('qris-proof-file')) {
                 document.getElementById('qris-proof-file').value = '';
