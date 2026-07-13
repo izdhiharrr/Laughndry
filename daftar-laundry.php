@@ -825,38 +825,45 @@ require_once __DIR__ . '/config/midtrans.php';
 
         <!-- QRIS Payment View (Hidden by default) -->
         <div id="qris-view" style="display: none;">
-            <div class="cart-title">
-                <span class="material-symbols-outlined" style="font-size:2.2rem; color: #00433a;">qr_code_2</span>
-                Pembayaran QRIS
+            <div class="cart-title" style="display: flex; align-items: center; justify-content: space-between; width: 100%; font-size: 1.5rem; font-weight: 800;">
+                <span class="material-symbols-outlined" id="btn-qris-back" style="font-size: 2.2rem; color: #00433a; cursor: pointer; user-select: none; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(-4px)'" onmouseout="this.style.transform='translateX(0)'" onclick="goBackFromQris()">arrow_back</span>
+                <span>Pembayaran Laughndry</span>
             </div>
             <div class="payment-content-scroll">
-                <div class="customer-info-section" style="margin-top: 10px; margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                <!-- Simplified Description Card (Matches Image 2 Style) -->
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-top: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                    <!-- Always visible top row -->
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span id="qris-total-price" style="font-weight: 800; color: #00433a; font-size: 1.4rem;">Rp 0</span>
+                        <span id="btn-toggle-qris-detail" style="font-size: 0.85rem; color: #00433a; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; user-select: none;" onclick="toggleQrisDetail()">
+                            Lihat Detail <span class="material-symbols-outlined" style="font-size: 1.1rem; color: #00433a; transition: transform 0.2s; display: inline-flex; align-items: center;" id="qris-detail-arrow">chevron_right</span>
+                        </span>
+                    </div>
 
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">Nama Pelanggan</span>
-                        <span id="qris-cust-name" style="font-weight: 700; color: #1f2937;">-</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">No Telepon</span>
-                        <span id="qris-cust-phone" style="font-weight: 700; color: #1f2937;">-</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px;">
-                        <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">Detail Item</span>
-                        <p id="qris-order-items" style="color: #4b5563; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.75rem; margin: 0; line-height: 1.4;"></p>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #e2e8f0;">
-                        <span style="font-weight: 600; color: #4b5563; font-size: 0.95rem;">Total Biaya</span>
-                        <span id="qris-total-price" style="font-weight: 800; color: #865300; font-size: 1.15rem;">Rp 0</span>
+                    <!-- Expandable content (Hidden by default) -->
+                    <div id="qris-detail-content" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px dashed #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">Nama Pelanggan</span>
+                            <span id="qris-cust-name" style="font-weight: 700; color: #1f2937;">-</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">No Telepon</span>
+                            <span id="qris-cust-phone" style="font-weight: 700; color: #1f2937;">-</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">Detail Item</span>
+                            <p id="qris-order-items" style="color: #4b5563; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.75rem; margin: 0; line-height: 1.4;"></p>
+                        </div>
                     </div>
                 </div>
 
                 <!-- QRIS Image Section -->
                 <div style="text-align: center; margin-bottom: 24px;">
                     <p style="font-size: 0.8rem; color: #4b5563; font-weight: 600; margin-bottom: 12px;">Silakan scan kode QRIS di bawah untuk melakukan pembayaran:</p>
-                    <img src="assets/gambar/qris_statis.png" alt="QRIS Code" style="margin: 0 auto 12px; max-width: 240px; width: 100%; height: auto; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; display: block;">
+                    <img src="assets/gambar/qris_statis.png?v=3" alt="QRIS Code" style="margin: 0 auto 12px; max-width: 240px; width: 100%; height: auto; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; display: block;">
                     
                     <!-- Download QRIS Button -->
-                    <a href="assets/gambar/qris_statis.png" download="qris_laughndry.png" style="display: inline-flex; align-items: center; gap: 8px; background: #00433a; color: #fff; padding: 10px 20px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; text-decoration: none; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0, 67, 58, 0.2); transition: all 0.3s; cursor: pointer;" class="hover:scale-105 active:scale-95">
+                    <a href="assets/gambar/qris_statis.png?v=3" download="qris_laughndry.png" style="display: inline-flex; align-items: center; gap: 8px; background: #00433a; color: #fff; padding: 10px 20px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; text-decoration: none; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0, 67, 58, 0.2); transition: all 0.3s; cursor: pointer;" class="hover:scale-105 active:scale-95">
                         <span class="material-symbols-outlined" style="font-size: 1.15rem;">download</span> Simpan Kode QRIS
                     </a>
 
@@ -1180,8 +1187,30 @@ require_once __DIR__ . '/config/midtrans.php';
             document.getElementById('qris-order-items').innerText = itemNames;
             document.getElementById('qris-total-price').innerText = 'Rp ' + totalHarga.toLocaleString('id-ID');
             
+            // Reset detail view to collapsed state
+            document.getElementById('qris-detail-content').style.display = 'none';
+            document.getElementById('qris-detail-arrow').style.transform = 'rotate(0deg)';
+            
             document.getElementById('payment-view').style.display = 'none';
             document.getElementById('qris-view').style.display = 'block';
+        }
+
+        function goBackFromQris() {
+            document.getElementById('qris-view').style.display = 'none';
+            document.getElementById('payment-view').style.display = 'block';
+        }
+
+        function toggleQrisDetail() {
+            const content = document.getElementById('qris-detail-content');
+            const arrow = document.getElementById('qris-detail-arrow');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                content.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
         }
 
         // Helper untuk me-resize gambar sebelum diproses oleh OCR (mengurangi penggunaan memori di HP)

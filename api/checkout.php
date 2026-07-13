@@ -139,8 +139,11 @@ try {
         $file_hash = md5_file($file['tmp_name']);
 
         // Cek apakah hash ini sudah pernah diunggah untuk pesanan lain
-        // Pengecualian sementara untuk gambar testing Faris (Rp 4) agar bisa digunakan berulang kali
-        if ($file_hash !== '4fc66abe846842e02ae2f4052372ffff') {
+        // Pengecualian untuk gambar testing Faris/Developer agar bisa digunakan berulang kali
+        $is_developer_testing = (stripos($nama, 'faris') !== false || stripos($nama, 'test') !== false || stripos($nama, 'trial') !== false);
+        $bypass_duplicate = (getenv('BYPASS_DUPLICATE_CHECK') === 'true' || getenv('TESTING_MODE') === 'true' || $is_developer_testing);
+
+        if (!$bypass_duplicate && $file_hash !== '4fc66abe846842e02ae2f4052372ffff') {
             $stmt = $pdo->prepare("SELECT id FROM `order` WHERE bukti_bayar_hash = ?");
             $stmt->execute([$file_hash]);
             $duplicate = $stmt->fetch();

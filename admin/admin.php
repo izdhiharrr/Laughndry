@@ -36,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         $_SESSION['is_admin'] = true;
         $_SESSION['admin_name'] = $user['nama_lengkap'];
         $_SESSION['admin_id'] = $user['id'];
+        header("Location: admin.php");
+        exit;
     } else {
         $login_error = "Username atau password salah!";
     }
