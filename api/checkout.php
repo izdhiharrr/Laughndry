@@ -138,12 +138,13 @@ try {
         // Hitung MD5 hash dari berkas bukti bayar untuk mencegah unggahan berulang (replay attack)
         $file_hash = md5_file($file['tmp_name']);
 
-        // Cek apakah hash ini sudah pernah diunggah untuk pesanan lain
-        // Pengecualian untuk gambar testing Faris/Developer agar bisa digunakan berulang kali
-        $is_developer_testing = (stripos($nama, 'faris') !== false || stripos($nama, 'test') !== false || stripos($nama, 'trial') !== false);
-        $bypass_duplicate = (getenv('BYPASS_DUPLICATE_CHECK') === 'true' || getenv('TESTING_MODE') === 'true' || $is_developer_testing);
+        // Pengecekan khusus bukti bayar testing (Rp 4 SeaBank receipt)
+        // Bukti bayar ini boleh digunakan berulang kali dan dilewati dari scan OCR agar tidak menghabiskan kuota API
+        $is_testing_receipt = ($file_hash === '4fc66abe846842e02ae2f4052372ffff');
 
-        if (!$bypass_duplicate && $file_hash !== '4fc66abe846842e02ae2f4052372ffff') {
+        $bypass_duplicate = (getenv('BYPASS_DUPLICATE_CHECK') === 'true' || getenv('TESTING_MODE') === 'true' || $is_testing_receipt);
+
+        if (!$bypass_duplicate) {
             $stmt = $pdo->prepare("SELECT id FROM `order` WHERE bukti_bayar_hash = ?");
             $stmt->execute([$file_hash]);
             $duplicate = $stmt->fetch();
@@ -159,7 +160,7 @@ try {
         }
 
         // Lakukan verifikasi OCR via Cloud API (OCR.space)
-        $bypass_ocr = (getenv('BYPASS_OCR_CHECK') === 'true' || getenv('TESTING_MODE') === 'true' || $is_developer_testing);
+        $bypass_ocr = (getenv('BYPASS_OCR_CHECK') === 'true' || getenv('TESTING_MODE') === 'true' || $is_testing_receipt);
         if (!$bypass_ocr) {
             require_once __DIR__ . '/../config/ocr.php';
             

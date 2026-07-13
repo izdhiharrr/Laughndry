@@ -1207,7 +1207,15 @@ require_once __DIR__ . '/config/midtrans.php';
             const arrow = document.getElementById('qris-detail-arrow');
             
             if (content.style.display === 'none') {
-                  // Event listeners untuk unggah bukti pembayaran QRIS
+                content.style.display = 'block';
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                content.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Event listeners untuk unggah bukti pembayaran QRIS
         document.getElementById('qris-proof-file').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
