@@ -128,33 +128,48 @@ function logStep($type, $message) {
 // STEP 1: Koneksi ke MySQL
 // ═══════════════════════════════════════════════════════════
 $total_steps++;
+$skip_create_db = false;
 try {
-    $pdo = new PDO("mysql:host=$db_host;charset=utf8mb4", $db_user, $db_pass, [
+    // Coba koneksi langsung ke database (berguna untuk cloud db seperti Railway)
+    $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     ]);
-    logStep('success', 'Berhasil terhubung ke MySQL');
+    logStep('success', "Berhasil terhubung langsung ke database <b>{$db_name}</b>");
     $success_count++;
+    $skip_create_db = true;
 } catch (PDOException $e) {
-    logStep('error', 'Gagal terhubung ke MySQL: ' . $e->getMessage() . '<br><br><span style="font-size:0.85rem;color:#854d0e;background:#fef9c3;padding:8px 12px;border-radius:8px;display:inline-block;border:1px solid #fef08a;">🔎 <b>Info Terdeteksi di Server:</b><br>Host: <code>' . htmlspecialchars($db_host) . '</code><br>User: <code>' . htmlspecialchars($db_user) . '</code><br>Database: <code>' . htmlspecialchars($db_name) . '</code></span>');
-    echo '<div class="summary fail">Setup gagal. Pastikan detail variabel database di Railway sudah benar!</div>';
-    echo '</div></body></html>';
-    exit;
+    // Jika gagal (mungkin karena database belum dibuat di localhost), coba koneksi tanpa dbname
+    try {
+        $pdo = new PDO("mysql:host=$db_host;charset=utf8mb4", $db_user, $db_pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        ]);
+        logStep('success', 'Berhasil terhubung ke MySQL server');
+        $success_count++;
+    } catch (PDOException $ex) {
+        logStep('error', 'Gagal terhubung ke MySQL: ' . $ex->getMessage() . '<br><br><span style="font-size:0.85rem;color:#854d0e;background:#fef9c3;padding:8px 12px;border-radius:8px;display:inline-block;border:1px solid #fef08a;">🔎 <b>Info Terdeteksi di Server:</b><br>Host: <code>' . htmlspecialchars($db_host) . '</code><br>User: <code>' . htmlspecialchars($db_user) . '</code><br>Database: <code>' . htmlspecialchars($db_name) . '</code></span>');
+        echo '<div class="summary fail">Setup gagal. Pastikan detail variabel database di Railway sudah benar!</div>';
+        echo '</div></body></html>';
+        exit;
+    }
 }
 
 // ═══════════════════════════════════════════════════════════
 // STEP 2: Buat Database
 // ═══════════════════════════════════════════════════════════
 $total_steps++;
-try {
-    $pdo->exec("CREATE DATABASE IF NOT EXISTS `$db_name` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    logStep('success', "Database <b>{$db_name}</b> berhasil dibuat / sudah ada");
+if ($skip_create_db) {
+    logStep('success', "Langkah pembuatan database dilewati karena berhasil terhubung langsung ke <b>{$db_name}</b>");
     $success_count++;
-} catch (PDOException $e) {
-    logStep('error', 'Gagal membuat database: ' . $e->getMessage());
+} else {
+    try {
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `$db_name` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        logStep('success', "Database <b>{$db_name}</b> berhasil dibuat / sudah ada");
+        $pdo->exec("USE `$db_name`");
+        $success_count++;
+    } catch (PDOException $e) {
+        logStep('error', 'Gagal membuat database: ' . $e->getMessage());
+    }
 }
-
-// Gunakan database
-$pdo->exec("USE `$db_name`");
 
 // ═══════════════════════════════════════════════════════════
 // DROP TABLES LAMA & BARU AGAR CLEAN REBUILD
