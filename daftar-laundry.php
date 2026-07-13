@@ -1219,7 +1219,7 @@ require_once __DIR__ . '/config/midtrans.php';
         }
 
         // Helper untuk me-resize gambar sebelum diproses oleh OCR (mengurangi penggunaan memori di HP)
-        function preprocessImageForOcr(file, maxWidth = 800) {
+        function preprocessImageForOcr(file, maxWidth = 500) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -1240,7 +1240,13 @@ require_once __DIR__ . '/config/midtrans.php';
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        resolve(canvas);
+                        canvas.toBlob(function(blob) {
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                reject(new Error('Canvas toBlob failed'));
+                            }
+                        }, 'image/jpeg', 0.7);
                     };
                     img.onerror = function() {
                         reject(new Error('Image load failed'));
@@ -1278,11 +1284,11 @@ require_once __DIR__ . '/config/midtrans.php';
                 document.getElementById('ocr-progress').innerText = 'Mengompresi gambar...';
 
                 // Lakukan kompresi/resizing terlebih dahulu untuk mencegah crash memori di HP
-                preprocessImageForOcr(file, 800)
-                    .then(resizedCanvas => {
+                preprocessImageForOcr(file, 500)
+                    .then(resizedBlob => {
                         document.getElementById('ocr-progress').innerText = 'Menyiapkan AI...';
                         return Tesseract.recognize(
-                            resizedCanvas,
+                            resizedBlob,
                             'eng',
                             {
                                 logger: m => {
