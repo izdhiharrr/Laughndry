@@ -1201,6 +1201,48 @@ require_once __DIR__ . '/config/midtrans.php';
             document.getElementById('qris-view').style.display = 'block';
         }
 
+        // Helper untuk me-resize gambar sebelum diproses oleh OCR (mengurangi penggunaan memori di HP)
+        function preprocessImageForOcr(file, maxWidth = 800) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxWidth) {
+                            height = Math.round(height * (maxWidth / width));
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob(function(blob) {
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                reject(new Error('Canvas toBlob failed'));
+                            }
+                        }, 'image/jpeg', 0.85);
+                    };
+                    img.onerror = function() {
+                        reject(new Error('Image load failed'));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.onerror = function() {
+                    reject(new Error('FileReader failed'));
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
         // Event listeners untuk unggah bukti pembayaran QRIS
         document.getElementById('qris-proof-file').addEventListener('change', function(event) {
             const file = event.target.files[0];
@@ -1222,86 +1264,92 @@ require_once __DIR__ . '/config/midtrans.php';
                 // Tunjukkan indikator loading analisis OCR
                 document.getElementById('upload-label').style.display = 'none';
                 document.getElementById('ocr-loading').style.display = 'flex';
-                document.getElementById('ocr-progress').innerText = 'Menyiapkan AI...';
+                document.getElementById('ocr-progress').innerText = 'Mengompresi gambar...';
 
-                // Jalankan Tesseract OCR
-                Tesseract.recognize(
-                    file,
-                    'eng',
-                    {
-                        logger: m => {
-                            if (m.status === 'recognizing text') {
-                                document.getElementById('ocr-progress').innerText = `Membaca teks (${Math.round(m.progress * 100)}%)...`;
-                            } else {
-                                document.getElementById('ocr-progress').innerText = `Menganalisis (${m.status})...`;
+                // Lakukan kompresi/resizing terlebih dahulu untuk mencegah crash memori di HP
+                preprocessImageForOcr(file, 800)
+                    .then(resizedBlob => {
+                        document.getElementById('ocr-progress').innerText = 'Menyiapkan AI...';
+                        return Tesseract.recognize(
+                            resizedBlob,
+                            'eng',
+                            {
+                                logger: m => {
+                                    if (m.status === 'recognizing text') {
+                                        document.getElementById('ocr-progress').innerText = `Membaca teks (${Math.round(m.progress * 100)}%)...`;
+                                    } else {
+                                        document.getElementById('ocr-progress').innerText = `Menganalisis (${m.status})...`;
+                                    }
+                                }
                             }
-                        }
-                    }
-                ).then(({ data: { text } }) => {
-                    const extractedText = text.toLowerCase();
-                    console.log("OCR Extracted Text:\n", extractedText);
+                        );
+                    })
+                    .then(({ data: { text } }) => {
+                        const extractedText = text.toLowerCase();
+                        console.log("OCR Extracted Text:\n", extractedText);
 
-                    // Validasi khusus merchant toko (Wajib mengandung nama merchant atau PAN merchant)
-                    const hasMerchant = extractedText.includes('laughndry') || 
-                                        extractedText.includes('laughndr') || 
-                                        extractedText.includes('9360000801649145786');
+                        // Validasi khusus merchant toko (Wajib mengandung nama merchant atau PAN merchant)
+                        const hasMerchant = extractedText.includes('laughndry') || 
+                                            extractedText.includes('laughndr') || 
+                                            extractedText.includes('9360000801649145786');
 
-                    // Daftar kata kunci resi perbankan/e-wallet Indonesia (umum)
-                    const keywords = [
-                        'rp', 'transfer', 'nominal', 'transaksi', 'sukses', 'berhasil', 
-                        'bayar', 'pembayaran', 'qris', 'bank', 'gopay', 'ovo', 'dana', 
-                        'linkaja', 'shopee', 'rekening', 'total', 'jumlah', 'success', 'send'
-                    ];
+                        // Daftar kata kunci resi perbankan/e-wallet Indonesia (umum)
+                        const keywords = [
+                            'rp', 'transfer', 'nominal', 'transaksi', 'sukses', 'berhasil', 
+                            'bayar', 'pembayaran', 'qris', 'bank', 'gopay', 'ovo', 'dana', 
+                            'linkaja', 'shopee', 'rekening', 'total', 'jumlah', 'success', 'send'
+                        ];
 
-                    // Hitung kecocokan kata kunci umum
-                    let matchCount = 0;
-                    keywords.forEach(keyword => {
-                        if (extractedText.includes(keyword)) {
-                            matchCount++;
-                        }
-                    });
+                        // Hitung kecocokan kata kunci umum
+                        let matchCount = 0;
+                        keywords.forEach(keyword => {
+                            if (extractedText.includes(keyword)) {
+                                matchCount++;
+                            }
+                        });
 
-                    // Syarat Lolos: Wajib ada info merchant toko AND minimal 2 kata kunci transaksi umum
-                    if (hasMerchant && matchCount >= 2) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            document.getElementById('proof-preview').src = e.target.result;
-                            document.getElementById('ocr-loading').style.display = 'none';
-                            document.getElementById('proof-preview-container').style.display = 'block';
+                        // Syarat Lolos: Wajib ada info merchant toko AND minimal 2 kata kunci transaksi umum
+                        if (hasMerchant && matchCount >= 2) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                document.getElementById('proof-preview').src = e.target.result;
+                                document.getElementById('ocr-loading').style.display = 'none';
+                                document.getElementById('proof-preview-container').style.display = 'block';
+                                
+                                // Aktifkan tombol "Saya Sudah Bayar"
+                                const btnQrisPaid = document.getElementById('btn-qris-paid');
+                                btnQrisPaid.disabled = false;
+                                btnQrisPaid.style.cursor = 'pointer';
+                                btnQrisPaid.style.opacity = '1';
+                            }
+                            reader.readAsDataURL(file);
+                        } else {
+                            alert('Berkas tidak terdeteksi sebagai resi pembayaran yang sah untuk LAUGHNDRY.\n\nPastikan screenshot resi Anda jelas dan terbaca. Jika sistem tetap menolak, Anda dapat menghubungi kami via WhatsApp untuk verifikasi manual.');
                             
-                            // Aktifkan tombol "Saya Sudah Bayar"
+                            event.target.value = '';
+                            document.getElementById('ocr-loading').style.display = 'none';
+                            document.getElementById('upload-label').style.display = 'flex';
+                            
+                            // Tetap nonaktifkan tombol
                             const btnQrisPaid = document.getElementById('btn-qris-paid');
-                            btnQrisPaid.disabled = false;
-                            btnQrisPaid.style.cursor = 'pointer';
-                            btnQrisPaid.style.opacity = '1';
+                            btnQrisPaid.disabled = true;
+                            btnQrisPaid.style.cursor = 'not-allowed';
+                            btnQrisPaid.style.opacity = '0.6';
                         }
-                        reader.readAsDataURL(file);
-                    } else {
-                        alert('Berkas tidak terdeteksi sebagai resi pembayaran yang sah untuk LAUGHNDRY.\n\nPastikan screenshot resi Anda jelas dan terbaca. Jika sistem tetap menolak, Anda dapat menghubungi kami via WhatsApp untuk verifikasi manual.');
+                    })
+                    .catch(err => {
+                        console.error("OCR Error:", err);
+                        alert('Gagal menganalisis resi pembayaran.\n\nHarap pastikan koneksi internet Anda stabil dan coba lagi. Jika sistem tetap menolak, Anda dapat menghubungi kami via WhatsApp untuk verifikasi manual.');
                         
                         event.target.value = '';
                         document.getElementById('ocr-loading').style.display = 'none';
                         document.getElementById('upload-label').style.display = 'flex';
                         
-                        // Tetap nonaktifkan tombol
                         const btnQrisPaid = document.getElementById('btn-qris-paid');
                         btnQrisPaid.disabled = true;
                         btnQrisPaid.style.cursor = 'not-allowed';
                         btnQrisPaid.style.opacity = '0.6';
-                    }
-                }).catch(err => {
-                    console.error("OCR Error:", err);
-                    alert('Gagal menganalisis resi pembayaran.\n\nHarap pastikan koneksi internet Anda stabil dan coba lagi. Jika sistem tetap menolak, Anda dapat menghubungi kami via WhatsApp untuk verifikasi manual.');
-                    
-                    event.target.value = '';
-                    document.getElementById('ocr-loading').style.display = 'none';
-                    document.getElementById('upload-label').style.display = 'flex';
-                    
-                    const btnQrisPaid = document.getElementById('btn-qris-paid');
-                    btnQrisPaid.disabled = true;
-                    btnQrisPaid.style.cursor = 'not-allowed';
-                    btnQrisPaid.style.opacity = '0.6';
-                });
+                    });
             }
         });
 
