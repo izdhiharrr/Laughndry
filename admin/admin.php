@@ -88,9 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_payment'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_payment'])) {
     $order_id = intval($_POST['order_id']);
     $admin_id = $_SESSION['admin_id'] ?? null;
-    // Set status pembayaran ke 'Ditolak' dan status pesanan ke 'ditolak'
-    $stmt = $pdo->prepare("UPDATE `order` SET payment_status = 'Ditolak', status = 'ditolak', user_id = ? WHERE id = ?");
-    $stmt->execute([$admin_id, $order_id]);
+    $alasan_tolak = isset($_POST['alasan_tolak']) ? trim($_POST['alasan_tolak']) : '';
+    // Set status pembayaran ke 'Ditolak', status pesanan ke 'ditolak', dan simpan alasan
+    $stmt = $pdo->prepare("UPDATE `order` SET payment_status = 'Ditolak', status = 'ditolak', alasan_tolak = ?, user_id = ? WHERE id = ?");
+    $stmt->execute([$alasan_tolak, $admin_id, $order_id]);
     header("Location: admin.php#pesanan");
     exit;
 }
@@ -138,9 +139,11 @@ if ($is_admin) {
             o.status,
             o.payment_status,
             o.bukti_bayar,
+            o.alasan_tolak,
             o.created_at,
             GROUP_CONCAT(DISTINCT oi.kategori SEPARATOR ', ') AS kategori_list,
             GROUP_CONCAT(CONCAT(oi.nama_item, ' (x', oi.qty, ')') SEPARATOR ', ') AS item_list,
+            GROUP_CONCAT(CONCAT(oi.nama_item, '|', oi.qty, '|', oi.subtotal) SEPARATOR '||') AS item_list_detail,
             SUM(oi.qty) AS total_qty
         FROM `order` o
         JOIN customer c ON o.customer_id = c.id
@@ -792,13 +795,15 @@ if ($is_admin) {
                                                                 'alamat' => $order['customer_alamat'] ?? '-',
                                                                 'kategori' => $order['kategori_list'] ?? '-',
                                                                 'items' => $order['item_list'] ?? '-',
+                                                                'items_detail' => $order['item_list_detail'] ?? '',
                                                                 'qty' => $order['total_qty'] ?? 0,
                                                                 'total' => 'Rp ' . number_format($order['total_harga'], 0, ',', '.'),
                                                                 'metode' => $metode_label,
                                                                 'raw_metode' => $raw_metode,
                                                                 'status_bayar' => $pay_text,
                                                                 'status_pesanan' => $order['status'],
-                                                                'bukti_bayar' => $order['bukti_bayar']
+                                                                'bukti_bayar' => $order['bukti_bayar'],
+                                                                'alasan_tolak' => $order['alasan_tolak']
                                                             ])) ?>)" 
                                                             class="px-3 py-1.5 bg-[#035D51] text-white font-bold rounded-lg hover:scale-105 active:scale-95 transition-all text-xs flex items-center justify-center gap-1 mx-auto">
                                                         <span class="material-symbols-outlined text-sm">visibility</span> Detail
@@ -949,92 +954,120 @@ if ($is_admin) {
         </div>
 
         <!-- Modal Detail Pesanan -->
-        <div id="order-detail-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
-            <div class="bg-surface-container-lowest max-w-lg w-full rounded-[2.5rem] shadow-2xl border border-primary/20 overflow-hidden transform scale-95 transition-transform duration-300">
+        <div id="order-detail-modal" class="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
+            <div class="bg-surface-container-lowest w-full md:w-[calc(100vw-16rem)] h-full shadow-2xl border-l border-primary/20 overflow-hidden transform translate-x-full transition-transform duration-300 flex flex-col">
                 <!-- Header -->
-                <div class="bg-primary p-6 text-center text-on-primary">
-                    <h3 class="text-xl font-black text-white" id="detail-modal-title">Detail Pesanan</h3>
+                <div class="bg-primary p-5 sm:p-6 text-center text-on-primary shrink-0">
+                    <h3 class="text-lg sm:text-xl font-black text-white" id="detail-modal-title">Detail Pesanan</h3>
                     <p class="text-xs text-white/80 mt-1" id="detail-modal-date">Tanggal Pesanan</p>
                 </div>
                 
                 <!-- Content -->
-                <div class="p-6 flex flex-col gap-4 max-h-[50vh] overflow-y-auto">
-                    <!-- Customer Data -->
-                    <div class="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/20">
-                        <h4 class="text-xs font-black text-primary uppercase tracking-wider mb-2">Informasi Pelanggan</h4>
-                        <div class="flex flex-col gap-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-on-surface-variant/70 font-semibold">Nama:</span>
-                                <span id="detail-cust-name" class="font-bold text-on-surface"></span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-on-surface-variant/70 font-semibold">Telepon:</span>
-                                <div class="flex items-center gap-2">
-                                    <span id="detail-cust-phone" class="font-bold text-on-surface"></span>
-                                    <a id="detail-cust-wa-btn" href="#" target="_blank" class="px-2.5 py-1 bg-green-600 text-white font-bold rounded-lg text-xs hover:bg-green-700 transition-colors inline-flex items-center gap-1">
-                                        💬 Chat WA
-                                    </a>
+                <div class="p-4 sm:p-6 md:p-8 flex flex-col md:flex-row gap-4 sm:gap-6 overflow-y-auto bg-surface-container-low flex-1">
+                    <!-- Left Column: Layanan & Item dan Total Tagihan dalam 1 grup -->
+                    <div class="flex-1 flex flex-col gap-4 sm:gap-6 h-fit bg-surface-container-lowest p-5 rounded-2xl sm:rounded-3xl border border-outline-variant/15 shadow-sm">
+                        <!-- Layanan & Item -->
+                        <div class="flex flex-col gap-3">
+                            <h4 class="text-xs sm:text-sm font-black text-primary uppercase tracking-wider pb-2 border-b border-outline-variant/10">Layanan & Item</h4>
+                            <div class="flex flex-col gap-3 text-sm">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-on-surface-variant/70 font-semibold">Jenis Layanan:</span>
+                                    <span id="detail-order-kategori" class="font-bold text-primary text-right"></span>
+                                </div>
+                                <div class="flex flex-col gap-1.5 mt-1">
+                                    <span class="text-on-surface-variant/70 font-semibold">Detail Item:</span>
+                                    <div id="detail-order-items" class="text-xs sm:text-sm text-on-surface bg-surface-container-low/40 p-3 sm:p-4 rounded-xl border border-outline-variant/10 font-medium leading-relaxed"></div>
                                 </div>
                             </div>
-                            <div class="flex flex-col gap-1 mt-1">
-                                <span class="text-on-surface-variant/70 font-semibold">Alamat:</span>
-                                <span id="detail-cust-address" class="text-xs text-on-surface-variant font-medium bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/10 leading-relaxed"></span>
+                        </div>
+                        
+                        <!-- Divider tipis -->
+                        <div class="border-t border-outline-variant/10 my-1"></div>
+                        
+                        <!-- Total Tagihan -->
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-xs font-bold text-on-surface-variant/70 uppercase">Total Tagihan</span>
+                                <p id="detail-order-total" class="text-xl sm:text-2xl font-black text-secondary mt-1"></p>
                             </div>
+                            <span class="material-symbols-outlined text-3xl sm:text-4xl text-secondary">payments</span>
                         </div>
                     </div>
-
-                    <!-- Items Detail -->
-                    <div class="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/20">
-                        <h4 class="text-xs font-black text-primary uppercase tracking-wider mb-2">Layanan & Item</h4>
-                        <div class="flex flex-col gap-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-on-surface-variant/70 font-semibold">Jenis Layanan:</span>
-                                <span id="detail-order-kategori" class="font-bold text-primary"></span>
-                            </div>
-                            <div class="flex flex-col gap-1 mt-1">
-                                <span class="text-on-surface-variant/70 font-semibold">Detail Item:</span>
-                                <p id="detail-order-items" class="text-xs text-on-surface-variant bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/10 font-medium leading-relaxed"></p>
+                    
+                    <!-- Right Column: Informasi Pelanggan, Status & Pembayaran, Bukti Pembayaran, dan Action Buttons dalam 1 grup -->
+                    <div class="flex-1 flex flex-col gap-5 h-fit bg-surface-container-lowest p-5 rounded-2xl sm:rounded-3xl border border-outline-variant/15 shadow-sm">
+                        <!-- Informasi Pelanggan -->
+                        <div class="flex flex-col gap-3">
+                            <h4 class="text-xs sm:text-sm font-black text-primary uppercase tracking-wider pb-2 border-b border-outline-variant/10">Informasi Pelanggan</h4>
+                            <div class="flex flex-col gap-2.5 text-sm">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-on-surface-variant/70 font-semibold">Nama:</span>
+                                    <span id="detail-cust-name" class="font-bold text-on-surface"></span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-on-surface-variant/70 font-semibold">Telepon:</span>
+                                    <div class="flex items-center gap-2">
+                                        <span id="detail-cust-phone" class="font-bold text-on-surface"></span>
+                                        <a id="detail-cust-wa-btn" href="#" target="_blank" class="w-8 h-8 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95 duration-200 shadow-sm shadow-green-600/10" title="Chat WA">
+                                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-1.5 mt-1">
+                                    <span class="text-on-surface-variant/70 font-semibold">Alamat:</span>
+                                    <span id="detail-cust-address" class="text-xs sm:text-sm text-on-surface-variant font-medium bg-surface-container-low/40 p-3 rounded-xl border border-outline-variant/10 leading-relaxed"></span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Payment Status -->
-                    <div class="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/20">
-                        <h4 class="text-xs font-black text-primary uppercase tracking-wider mb-2">Status & Pembayaran</h4>
-                        <div class="flex flex-col gap-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-on-surface-variant/70 font-semibold">Metode Bayar:</span>
-                                <span id="detail-order-metode" class="font-bold text-on-surface"></span>
+                        
+                        <!-- Divider tipis -->
+                        <div class="border-t border-outline-variant/10"></div>
+                        
+                        <!-- Status & Pembayaran -->
+                        <div class="flex flex-col gap-3">
+                            <h4 class="text-xs sm:text-sm font-black text-primary uppercase tracking-wider pb-2 border-b border-outline-variant/10">Status & Pembayaran</h4>
+                            <div class="flex flex-col gap-2.5 text-sm">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-on-surface-variant/70 font-semibold">Metode Bayar:</span>
+                                    <span id="detail-order-metode" class="font-bold text-on-surface"></span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-on-surface-variant/70 font-semibold">Status Bayar:</span>
+                                    <span id="detail-order-status-bayar" class="text-xs font-bold px-2.5 py-1 rounded-full border"></span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-on-surface-variant/70 font-semibold">Status Pesanan:</span>
+                                    <span id="detail-order-status-pesanan" class="text-xs font-black px-2.5 py-1 rounded-full border uppercase"></span>
+                                </div>
+                                <!-- Alasan Tolak display (if previously rejected) -->
+                                <div id="detail-rejection-reason-container" class="hidden mt-2 p-3 bg-red-50 text-red-800 rounded-xl border border-red-200 text-xs">
+                                    <span class="font-black">Alasan Ditolak:</span> <span id="detail-rejection-reason-text"></span>
+                                </div>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-on-surface-variant/70 font-semibold">Status Bayar:</span>
-                                <span id="detail-order-status-bayar" class="text-xs font-bold px-2.5 py-1 rounded-full border"></span>
+                        </div>
+                        
+                        <!-- Bukti Pembayaran -->
+                        <div class="flex flex-col gap-3" id="detail-proof-section" style="display: none;">
+                            <div class="border-t border-outline-variant/10 pt-2"></div>
+                            <h4 class="text-xs sm:text-sm font-black text-primary uppercase tracking-wider pb-2 border-b border-outline-variant/10">Bukti Pembayaran</h4>
+                            <div class="text-center">
+                                <a id="detail-proof-link" href="#" target="_blank" class="inline-block overflow-hidden rounded-xl border border-outline-variant/10 relative group">
+                                    <img id="detail-proof-img" src="#" alt="Bukti Transfer" class="max-h-60 rounded-xl mx-auto hover:scale-[1.02] transition-all duration-300 shadow-sm">
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
+                                        <span class="material-symbols-outlined text-sm">zoom_in</span> Lihat Resolusi Penuh
+                                    </div>
+                                </a>
+                                <p class="text-xs text-on-surface-variant/50 mt-2">Klik gambar untuk melihat resolusi penuh / download</p>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-on-surface-variant/70 font-semibold">Status Pesanan:</span>
-                                <span id="detail-order-status-pesanan" class="text-xs font-black px-2.5 py-1 rounded-full border uppercase"></span>
-                            </div>
-                            <div class="flex justify-between pt-3 border-t border-outline-variant/10 mt-1">
-                                <span class="font-bold text-on-surface-variant">Total Tagihan:</span>
-                                <span id="detail-order-total" class="font-black text-secondary text-base"></span>
-                            </div>
-                    </div>
-
-                    <!-- Bukti Pembayaran -->
-                    <div class="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/20" id="detail-proof-section" style="display: none;">
-                        <h4 class="text-xs font-black text-primary uppercase tracking-wider mb-2">Bukti Pembayaran</h4>
-                        <div class="text-center">
-                            <a id="detail-proof-link" href="#" target="_blank">
-                                <img id="detail-proof-img" src="#" alt="Bukti Transfer" class="max-h-48 rounded-lg border border-outline-variant/10 mx-auto hover:opacity-90 transition-all shadow-sm">
-                            </a>
-                            <p class="text-xs text-on-surface-variant/70 mt-2">Klik gambar untuk melihat resolusi penuh / download</p>
+                        </div>
+                        
+                        <!-- Action Buttons Area -->
+                        <div id="detail-modal-actions" class="flex flex-col gap-2 mt-2">
+                            <!-- Buttons inserted dynamically based on status -->
                         </div>
                     </div>
-                </div>
-                
-                <!-- Footer / Actions -->
-                <div class="p-6 bg-surface-container-low border-t border-outline-variant/10 flex flex-col gap-2" id="detail-modal-actions">
-                    <!-- Buttons inserted dynamically based on status -->
                 </div>
             </div>
         </div>
@@ -1154,6 +1187,13 @@ if ($is_admin) {
             $(document).on('click', function() {
                 $('.dropdown-menu').addClass('opacity-0 invisible');
                 $('.arrow-icon').removeClass('rotate-180');
+            });
+
+            // Close order detail modal when clicking on the overlay background (outside the panel)
+            $('#order-detail-modal').on('click', function(e) {
+                if (e.target === this) {
+                    closeOrderDetailModal();
+                }
             });
 
             function switchTab(tabName) {
@@ -1429,13 +1469,15 @@ if ($is_admin) {
                         alamat: order.customer_alamat || '-',
                         kategori: order.kategori_list || '-',
                         items: order.item_list || '-',
+                        items_detail: order.item_list_detail || '',
                         qty: order.total_qty || 0,
                         total: 'Rp ' + parseInt(order.total_harga).toLocaleString('id-ID'),
                         metode: order.metode_bayar === 'qris' ? '🔲 QRIS' : (order.metode_bayar === 'tunai' ? '💵 Tunai' : order.metode_bayar),
                         raw_metode: order.metode_bayar,
                         status_bayar: order.payment_status || 'Pending',
                         status_pesanan: order.status,
-                        bukti_bayar: order.bukti_bayar
+                        bukti_bayar: order.bukti_bayar,
+                        alasan_tolak: order.alasan_tolak
                     };
                     
                     showOrderDetail(details);
@@ -1480,8 +1522,36 @@ if ($is_admin) {
                 
                 $('#detail-cust-address').text(details.alamat);
                 $('#detail-order-kategori').text(details.kategori);
-                $('#detail-order-items').text(details.items);
-                $('#detail-order-metode').text(details.metode);
+                // Render structured items list vertically (stacked) with subtotals if available
+                const itemsContainer = $('#detail-order-items');
+                itemsContainer.empty();
+                if (details.items_detail) {
+                    const items = details.items_detail.split('||');
+                    let itemsHtml = '<div class="flex flex-col gap-2.5 w-full">';
+                    items.forEach(item => {
+                        const parts = item.split('|');
+                        if (parts.length === 3) {
+                            const name = parts[0];
+                            const qty = parts[1];
+                            const subtotal = parseInt(parts[2]) || 0;
+                            const formattedSubtotal = 'Rp ' + subtotal.toLocaleString('id-ID');
+                            itemsHtml += `
+                                <div class="flex justify-between items-center text-xs sm:text-sm py-1.5 border-b border-outline-variant/10 last:border-b-0">
+                                    <span class="text-on-surface font-semibold">${name} <span class="text-xs text-on-surface-variant/60 ml-1.5 font-normal">× ${qty}</span></span>
+                                    <span class="font-black text-primary">${formattedSubtotal}</span>
+                                </div>
+                            `;
+                        }
+                    });
+                    itemsHtml += '</div>';
+                    itemsContainer.html(itemsHtml);
+                } else {
+                    itemsContainer.text(details.items || '-');
+                }
+                
+                // Remove square icon next to QRIS (if present)
+                let cleanMetode = String(details.metode || '').replace('🔲 ', '').replace('🔲', '');
+                $('#detail-order-metode').text(cleanMetode);
                 
                 // Format payment status badge
                 const payStatusSpan = $('#detail-order-status-bayar');
@@ -1520,6 +1590,16 @@ if ($is_admin) {
                 
                 $('#detail-order-total').text(details.total);
                 
+                // Tampilkan alasan tolak jika pesanan ditolak dan memiliki alasan
+                const rejectionContainer = $('#detail-rejection-reason-container');
+                const rejectionText = $('#detail-rejection-reason-text');
+                if (details.alasan_tolak && (details.status_pesanan === 'ditolak' || details.status_bayar === 'Ditolak')) {
+                    rejectionText.text(details.alasan_tolak);
+                    rejectionContainer.removeClass('hidden');
+                } else {
+                    rejectionContainer.addClass('hidden');
+                }
+                
                 // Tampilkan Bukti Pembayaran jika ada
                 const proofSection = $('#detail-proof-section');
                 if (details.bukti_bayar) {
@@ -1536,32 +1616,35 @@ if ($is_admin) {
                 actionsContainer.empty();
                 
                 if (details.status_bayar === 'Menunggu Verifikasi' && details.raw_metode === 'qris') {
-                    // Show Confirm & Reject buttons
+                    // Show Confirm & Reject buttons with reason field below proof
                     actionsContainer.append(`
-                        <div class="flex gap-2 w-full mt-2">
-                            <form method="POST" action="admin.php" class="flex-1">
+                        <div class="flex flex-col gap-3 w-full mt-2">
+                            <form method="POST" action="admin.php" class="w-full">
                                 <input type="hidden" name="confirm_payment" value="1">
                                 <input type="hidden" name="order_id" value="${details.id}">
-                                <button type="submit" class="w-full py-3 bg-[#035D51] text-white font-bold rounded-full text-sm hover:scale-[1.02] active:scale-95 transition-all text-center">
-                                    Konfirmasi Pembayaran
+                                <button type="submit" class="w-full py-3 bg-[#035D51] hover:bg-[#00433a] text-white font-black rounded-xl text-sm hover:scale-[1.01] active:scale-95 transition-all text-center flex items-center justify-center gap-2 shadow-lg shadow-[#035D51]/10">
+                                    <span class="material-symbols-outlined text-lg">check_circle</span> Konfirmasi Lunas
                                 </button>
                             </form>
-                            <form method="POST" action="admin.php" class="flex-1">
+                            <form method="POST" action="admin.php" class="w-full flex flex-col gap-2.5 border-t border-outline-variant/10 pt-3">
                                 <input type="hidden" name="reject_payment" value="1">
                                 <input type="hidden" name="order_id" value="${details.id}">
-                                <button type="submit" class="w-full py-3 bg-red-600 text-white font-bold rounded-full text-sm hover:scale-[1.02] active:scale-95 transition-all text-center">
-                                    Tolak Pembayaran
+                                <div>
+                                    <input type="text" name="alasan_tolak" placeholder="Alasan tolak (opsional)" class="w-full bg-surface border-2 border-outline-variant/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-semibold text-on-surface">
+                                </div>
+                                <button type="submit" class="w-full py-3 bg-transparent border-2 border-red-600 text-red-600 hover:bg-red-50 font-black rounded-xl text-sm hover:scale-[1.01] active:scale-95 transition-all text-center flex items-center justify-center gap-2 mt-1">
+                                    <span class="material-symbols-outlined text-sm">cancel</span> Tolak Pembayaran
                                 </button>
                             </form>
+                            <button onclick="closeOrderDetailModal()" class="w-full py-3 bg-surface-container-high hover:bg-surface-variant text-on-surface-variant font-bold rounded-xl text-xs transition-all text-center mt-1">
+                                Tutup
+                            </button>
                         </div>
-                        <button onclick="closeOrderDetailModal()" class="w-full py-2.5 bg-surface-container-high hover:bg-surface-variant text-on-surface-variant font-bold rounded-full text-xs transition-all text-center">
-                            Tutup
-                        </button>
                     `);
                 } else {
                     // Just close button
                     actionsContainer.append(`
-                        <button onclick="closeOrderDetailModal()" class="w-full py-3 bg-[#035D51] text-white font-bold rounded-full text-sm hover:scale-[1.02] active:scale-95 transition-all text-center">
+                        <button onclick="closeOrderDetailModal()" class="w-full py-3 bg-[#035D51] hover:bg-[#00433a] text-white font-black rounded-xl text-sm hover:scale-[1.01] active:scale-95 transition-all text-center flex items-center justify-center gap-2 shadow-lg shadow-[#035D51]/20 mt-2">
                             Tutup
                         </button>
                     `);
@@ -1572,7 +1655,7 @@ if ($is_admin) {
                 modal.removeClass('hidden');
                 setTimeout(() => {
                     modal.removeClass('opacity-0');
-                    modal.find('> div').removeClass('scale-95').addClass('scale-100');
+                    modal.find('> div').removeClass('translate-x-full').addClass('translate-x-0');
                 }, 50);
             }
 
@@ -1581,7 +1664,7 @@ if ($is_admin) {
             function closeOrderDetailModal() {
                 const modal = $('#order-detail-modal');
                 modal.addClass('opacity-0');
-                modal.find('> div').removeClass('scale-100').addClass('scale-95');
+                modal.find('> div').removeClass('translate-x-0').addClass('translate-x-full');
                 setTimeout(() => {
                     modal.addClass('hidden');
                     if (shouldReloadOnDetailClose) {

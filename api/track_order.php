@@ -32,6 +32,7 @@ try {
             o.metode_bayar,
             o.status,
             o.payment_status,
+            o.alasan_tolak,
             GROUP_CONCAT(DISTINCT oi.kategori SEPARATOR ', ') AS kategori_list,
             GROUP_CONCAT(CONCAT(oi.nama_item, ' (x', oi.qty, ')') SEPARATOR ', ') AS item_list,
             SUM(oi.qty) AS total_qty

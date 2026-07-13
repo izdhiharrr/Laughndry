@@ -275,6 +275,7 @@ function trackOrder(event) {
             let countAll = data.orders.length;
             let countPending = data.orders.filter(o => o.status === 'pending').length;
             let countVerifikasi = data.orders.filter(o => o.status === 'menunggu verifikasi').length;
+            let countDitolak = data.orders.filter(o => o.status === 'ditolak').length;
             let countDiproses = data.orders.filter(o => o.status === 'diproses').length;
             let countCuci = data.orders.filter(o => o.status === 'cuci').length;
             let countSetrika = data.orders.filter(o => o.status === 'setrika').length;
@@ -291,10 +292,11 @@ function trackOrder(event) {
                 </div>
                 
                 <!-- Tab Filters (Horizontal Scrollable on Mobile) -->
-                <div class="flex overflow-x-auto justify-start md:justify-center gap-2 mb-6 pb-2" id="order-tabs" style="scrollbar-width: none; -ms-overflow-style: none;">
+                <div class="flex overflow-x-auto justify-start gap-2 mb-6 pb-2 w-full" id="order-tabs" style="scrollbar-width: none; -ms-overflow-style: none;">
                     <button onclick="filterOrders('all')" id="tab-all" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-[#035D51] text-white shadow-md shadow-[#035D51]/20 shrink-0">Semua (${countAll})</button>
                     <button onclick="filterOrders('pending')" id="tab-pending" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Menunggu Pembayaran (${countPending})</button>
-                    <button onclick="filterOrders('menunggu-verifikasi')" id="tab-menunggu-verifikasi" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Menunggu Verifikasi (${countVerifikasi})</button>
+                    <button onclick="filterOrders('menunggu verifikasi')" id="tab-menunggu-verifikasi" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Menunggu Verifikasi (${countVerifikasi})</button>
+                    <button onclick="filterOrders('ditolak')" id="tab-ditolak" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Ditolak (${countDitolak})</button>
                     <button onclick="filterOrders('diproses')" id="tab-diproses" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Diproses (${countDiproses})</button>
                     <button onclick="filterOrders('cuci')" id="tab-cuci" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Cuci (${countCuci})</button>
                     <button onclick="filterOrders('setrika')" id="tab-setrika" class="px-4 py-2 rounded-full font-bold text-xs transition-all bg-surface-container-high text-on-surface-variant hover:bg-surface-variant shrink-0">Setrika (${countSetrika})</button>
@@ -372,6 +374,12 @@ function trackOrder(event) {
                                 <span class="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-wider">Detail Item Pesanan</span>
                                 <p class="text-on-surface-variant font-medium bg-surface-container-low/50 p-3.5 rounded-2xl border border-outline-variant/5 text-xs leading-relaxed">${order.item_list || '-'}</p>
                             </div>
+                            ${order.status === 'ditolak' && order.alasan_tolak ? `
+                             <div class="md:col-span-2 flex flex-col gap-1.5 mt-2 p-4 bg-red-50 text-red-800 rounded-2xl border border-red-200 text-xs">
+                                 <span class="text-[10px] font-black uppercase tracking-wider text-red-600">Alasan Penolakan Admin</span>
+                                 <p class="font-bold leading-relaxed">${order.alasan_tolak}</p>
+                             </div>
+                             ` : ''}
                         </div>
 
                         <!-- Footer Card: Qty & Total Harga -->
@@ -401,7 +409,7 @@ function trackOrder(event) {
             
             // Definisikan fungsi filter global
             window.filterOrders = function(group) {
-                const tabs = ['all', 'pending', 'menunggu verifikasi', 'diproses', 'cuci', 'setrika', 'selesai', 'siap diambil', 'sudah diambil'];
+                const tabs = ['all', 'pending', 'menunggu verifikasi', 'ditolak', 'diproses', 'cuci', 'setrika', 'selesai', 'siap diambil', 'sudah diambil'];
                 
                 // Reset styling semua tab
                 tabs.forEach(t => {

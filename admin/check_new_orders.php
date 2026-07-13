@@ -29,8 +29,10 @@ try {
             o.status,
             o.payment_status,
             o.bukti_bayar,
+            o.alasan_tolak,
             GROUP_CONCAT(DISTINCT oi.kategori SEPARATOR ', ') AS kategori_list,
             GROUP_CONCAT(CONCAT(oi.nama_item, ' (x', oi.qty, ')') SEPARATOR ', ') AS item_list,
+            GROUP_CONCAT(CONCAT(oi.nama_item, '|', oi.qty, '|', oi.subtotal) SEPARATOR '||') AS item_list_detail,
             SUM(oi.qty) AS total_qty
         FROM `order` o
         JOIN customer c ON o.customer_id = c.id
