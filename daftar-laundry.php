@@ -850,9 +850,13 @@ require_once __DIR__ . '/config/midtrans.php';
                             <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">No Telepon</span>
                             <span id="qris-cust-phone" style="font-weight: 700; color: #1f2937;">-</span>
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px;">
                             <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">Detail Item</span>
                             <p id="qris-order-items" style="color: #4b5563; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.75rem; margin: 0; line-height: 1.4;"></p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-weight: 600; color: #4b5563; font-size: 0.85rem;">Alamat</span>
+                            <p id="qris-cust-address" style="color: #4b5563; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.75rem; margin: 0; line-height: 1.4;"></p>
                         </div>
                     </div>
                 </div>
@@ -1182,6 +1186,7 @@ require_once __DIR__ . '/config/midtrans.php';
         function showQrisPaymentScreen(totalHarga, customerData) {
             document.getElementById('qris-cust-name').innerText = customerData.nama;
             document.getElementById('qris-cust-phone').innerText = customerData.telepon;
+            document.getElementById('qris-cust-address').innerText = customerData.alamat || '-';
             
             const itemNames = cart.map(item => `${item.name} (x${item.qty || 1})`).join(', ');
             document.getElementById('qris-order-items').innerText = itemNames;
@@ -1235,13 +1240,7 @@ require_once __DIR__ . '/config/midtrans.php';
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        canvas.toBlob(function(blob) {
-                            if (blob) {
-                                resolve(blob);
-                            } else {
-                                reject(new Error('Canvas toBlob failed'));
-                            }
-                        }, 'image/jpeg', 0.85);
+                        resolve(canvas);
                     };
                     img.onerror = function() {
                         reject(new Error('Image load failed'));
@@ -1280,10 +1279,10 @@ require_once __DIR__ . '/config/midtrans.php';
 
                 // Lakukan kompresi/resizing terlebih dahulu untuk mencegah crash memori di HP
                 preprocessImageForOcr(file, 800)
-                    .then(resizedBlob => {
+                    .then(resizedCanvas => {
                         document.getElementById('ocr-progress').innerText = 'Menyiapkan AI...';
                         return Tesseract.recognize(
-                            resizedBlob,
+                            resizedCanvas,
                             'eng',
                             {
                                 logger: m => {
