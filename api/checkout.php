@@ -16,20 +16,66 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require_once __DIR__ . '/../config/database.php';
 
-$input = json_decode(file_get_contents('php://input'), true);
+$is_qris_direct = (isset($_POST['is_qris_direct']) && $_POST['is_qris_direct'] === 'true');
 
-if (!$input) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Data tidak valid']);
-    exit;
+if ($is_qris_direct) {
+    require_once __DIR__ . '/../config/cloudinary.php';
+    
+    $nama              = trim($_POST['nama'] ?? '');
+    $telepon           = trim($_POST['telepon'] ?? '');
+    $alamat            = trim($_POST['alamat'] ?? '');
+    $items             = json_decode($_POST['items'] ?? '[]', true);
+    $payment_type      = $_POST['payment_type'] ?? 'qris';
+    $midtrans_order_id = null;
+    
+    // Validasi berkas bukti_bayar
+    if (!isset($_FILES['bukti_bayar']) || $_FILES['bukti_bayar']['error'] !== UPLOAD_ERR_OK) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Silakan lampirkan foto bukti pembayaran yang valid']);
+        exit;
+    }
+    
+    $file = $_FILES['bukti_bayar'];
+    
+    // Validasi ukuran berkas (maks 2MB)
+    if ($file['size'] > 2 * 1024 * 1024) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Ukuran berkas terlalu besar. Maksimal 2MB.']);
+        exit;
+    }
+    
+    // Validasi format file gambar
+    $allowed_extensions = ['jpg', 'jpeg', 'png'];
+    $allowed_mime_types = ['image/jpeg', 'image/png', 'image/x-png', 'image/pjpeg'];
+    
+    $file_info = pathinfo($file['name']);
+    $extension = strtolower($file_info['extension'] ?? '');
+    
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime_type = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    
+    if (!in_array($extension, $allowed_extensions) || !in_array($mime_type, $allowed_mime_types)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Format berkas tidak valid. Harap unggah gambar JPG atau PNG']);
+        exit;
+    }
+} else {
+    $input = json_decode(file_get_contents('php://input'), true);
+    
+    if (!$input) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Data tidak valid']);
+        exit;
+    }
+    
+    $nama              = trim($input['nama'] ?? '');
+    $telepon           = trim($input['telepon'] ?? '');
+    $alamat            = trim($input['alamat'] ?? '');
+    $items             = $input['items'] ?? [];
+    $payment_type      = $input['payment_type'] ?? 'midtrans';
+    $midtrans_order_id = $input['midtrans_order_id'] ?? null;
 }
-
-$nama              = trim($input['nama'] ?? '');
-$telepon           = trim($input['telepon'] ?? '');
-$alamat            = trim($input['alamat'] ?? '');
-$items             = $input['items'] ?? [];
-$payment_type      = $input['payment_type'] ?? 'midtrans';
-$midtrans_order_id = $input['midtrans_order_id'] ?? null;
 
 if (empty($nama) || empty($telepon) || empty($alamat)) {
     http_response_code(400);
@@ -74,22 +120,103 @@ try {
     }
 
     // Tentukan status berdasarkan metode bayar
-    $is_tunai       = $input['is_tunai'] ?? false;
-    $is_qris        = ($payment_type === 'qris' || $payment_type === 'qris_statis');
+    $is_tunai = (!$is_qris_direct && ($input['is_tunai'] ?? false));
     
-    if ($is_tunai || $is_qris) {
+    $bukti_bayar_value = null;
+    $file_hash = null;
+
+    if ($is_qris_direct) {
+        $order_status = 'menunggu verifikasi';
+        $pay_status   = 'Menunggu Verifikasi';
+        
+        // Persiapkan direktori penyimpanan
+        $upload_dir = __DIR__ . '/../uploads/bukti_pembayaran/';
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+
+        // Hitung MD5 hash dari berkas bukti bayar untuk mencegah unggahan berulang (replay attack)
+        $file_hash = md5_file($file['tmp_name']);
+
+        // Cek apakah hash ini sudah pernah diunggah untuk pesanan lain
+        // Pengecualian sementara untuk gambar testing Faris (Rp 4) agar bisa digunakan berulang kali
+        if ($file_hash !== '4fc66abe846842e02ae2f4052372ffff') {
+            $stmt = $pdo->prepare("SELECT id FROM `order` WHERE bukti_bayar_hash = ?");
+            $stmt->execute([$file_hash]);
+            $duplicate = $stmt->fetch();
+
+            if ($duplicate) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Bukti pembayaran ini sudah pernah digunakan untuk pesanan lain. Harap unggah resi transfer yang sah.']);
+                exit;
+            }
+        }
+
+        $uploaded = false;
+
+        // Proses unggah ke Cloudinary jika diaktifkan
+        if (CLOUDINARY_ENABLED) {
+            $cloudinary_url = false;
+            
+            // Coba kompresi gambar secara lokal terlebih dahulu untuk menghemat bandwidth
+            if (extension_loaded('gd') && function_exists('imagecreatefromjpeg')) {
+                $temp_filename = 'temp_proof_checkout_' . bin2hex(random_bytes(8)) . '.jpg';
+                $temp_destination = $upload_dir . $temp_filename;
+                
+                if (compressAndSaveImage($file['tmp_name'], $temp_destination, $extension)) {
+                    $cloudinary_url = upload_to_cloudinary($temp_destination);
+                    @unlink($temp_destination);
+                }
+            }
+            
+            // Jika kompresi dinonaktifkan atau gagal, upload berkas asli
+            if (!$cloudinary_url) {
+                $cloudinary_url = upload_to_cloudinary($file['tmp_name']);
+            }
+            
+            if ($cloudinary_url) {
+                $bukti_bayar_value = $cloudinary_url;
+                $uploaded = true;
+            }
+        }
+
+        // Fallback: Jika Cloudinary dinonaktifkan atau upload gagal, simpan secara lokal
+        if (!$uploaded) {
+            $save_extension = (extension_loaded('gd') && function_exists('imagecreatefromjpeg')) ? 'jpg' : $extension;
+            $new_filename = 'proof_checkout_' . bin2hex(random_bytes(8)) . '.' . $save_extension;
+            $destination = $upload_dir . $new_filename;
+
+            if (extension_loaded('gd') && function_exists('imagecreatefromjpeg')) {
+                $uploaded = compressAndSaveImage($file['tmp_name'], $destination, $extension);
+            } else {
+                $uploaded = move_uploaded_file($file['tmp_name'], $destination);
+            }
+
+            if (!$uploaded) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw new Exception('Gagal menyimpan file di server. Pastikan format gambar valid.');
+            }
+            
+            $bukti_bayar_value = $new_filename;
+        }
+    } else if ($is_tunai) {
         $order_status = 'pending';
-        $pay_status   = $is_qris ? 'pending' : null;
+        $pay_status   = null;
     } else {
         $order_status = 'diproses';
         $pay_status   = 'settlement';
     }
 
     $stmt = $pdo->prepare("
-        INSERT INTO `order` (customer_id, total_harga, metode_bayar, status, midtrans_order_id, payment_status) 
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO `order` (customer_id, total_harga, metode_bayar, status, midtrans_order_id, payment_status, bukti_bayar, bukti_bayar_hash) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
-    $stmt->execute([$customer_id, $total_harga, $payment_type, $order_status, $midtrans_order_id, $pay_status]);
+    $stmt->execute([$customer_id, $total_harga, $payment_type, $order_status, $midtrans_order_id, $pay_status, $bukti_bayar_value, $file_hash]);
     $order_id = $pdo->lastInsertId();
 
     // ═══════════════════════════════════════════
@@ -127,4 +254,44 @@ try {
         'success' => false,
         'message' => 'Gagal menyimpan pesanan: ' . $e->getMessage(),
     ]);
+}
+
+/**
+ * Kompresi gambar bukti transfer menggunakan GD library
+ * Mengubah resolusi maks lebar 800px dan kompresi JPEG quality 70.
+ */
+function compressAndSaveImage($source_path, $dest_path, $extension) {
+    list($width, $height) = @getimagesize($source_path);
+    if (!$width || !$height) {
+        return false;
+    }
+
+    $source_image = null;
+    if ($extension === 'png') {
+        $source_image = @imagecreatefrompng($source_path);
+    } else {
+        $source_image = @imagecreatefromjpeg($source_path);
+    }
+
+    if (!$source_image) {
+        return false;
+    }
+
+    $max_width = 800;
+    if ($width > $max_width) {
+        $new_width = $max_width;
+        $new_height = floor($height * ($max_width / $width));
+    } else {
+        $new_width = $width;
+        $new_height = $height;
+    }
+
+    $virtual_image = imagecreatetruecolor($new_width, $new_height);
+    imagecopyresampled($virtual_image, $source_image, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
+    $result = imagejpeg($virtual_image, $dest_path, 70);
+
+    imagedestroy($source_image);
+    imagedestroy($virtual_image);
+
+    return $result;
 }

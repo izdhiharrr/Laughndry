@@ -928,6 +928,7 @@ require_once __DIR__ . '/config/midtrans.php';
         const cartEmpty = document.getElementById('cart-empty');
         const cartTotal = document.getElementById('cart-total');
         let total = 0;
+        let currentCheckoutData = null;
 
         function renderCart() {
             cartList.innerHTML = '';
@@ -1161,41 +1162,23 @@ require_once __DIR__ . '/config/midtrans.php';
                             document.getElementById('checkout-loading').style.display = 'none';
                         });
                 } else {
-                    // ══════ QRIS: Simpan ke DB dengan status pending & tunjukkan QRIS ══════
-                    fetch('api/checkout.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ...checkoutData, payment_type: 'qris', is_tunai: false })
-                    })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.success && data.order_id) {
-                                showQrisPaymentScreen(data.order_id, data.total_harga, checkoutData);
-                            } else {
-                                alert('Gagal memproses pesanan: ' + (data.message || 'Unknown error'));
-                            }
-                        })
-                        .catch(err => {
-                            console.error('QRIS checkout error:', err);
-                            alert('Terjadi kesalahan jaringan. Coba lagi.');
-                        })
-                        .finally(() => {
-                            btnConfirm.disabled = false;
-                            btnConfirm.textContent = 'Bayar Sekarang';
-                            document.getElementById('checkout-loading').style.display = 'none';
-                        });
+                    // ══════ QRIS: Tunjukkan layar QRIS tanpa simpan ke DB dulu ══════
+                    currentCheckoutData = checkoutData;
+                    showQrisPaymentScreen(total, checkoutData);
+                    btnConfirm.disabled = false;
+                    btnConfirm.textContent = 'Bayar Sekarang';
+                    document.getElementById('checkout-loading').style.display = 'none';
                 }
             }
         });
 
-        function showQrisPaymentScreen(orderId, totalHarga, customerData) {
+        function showQrisPaymentScreen(totalHarga, customerData) {
             document.getElementById('qris-cust-name').innerText = customerData.nama;
             document.getElementById('qris-cust-phone').innerText = customerData.telepon;
             
             const itemNames = cart.map(item => `${item.name} (x${item.qty || 1})`).join(', ');
             document.getElementById('qris-order-items').innerText = itemNames;
             document.getElementById('qris-total-price').innerText = 'Rp ' + totalHarga.toLocaleString('id-ID');
-            document.getElementById('btn-qris-paid').setAttribute('data-order-id', orderId);
             
             document.getElementById('payment-view').style.display = 'none';
             document.getElementById('qris-view').style.display = 'block';
@@ -1367,7 +1350,6 @@ require_once __DIR__ . '/config/midtrans.php';
 
         document.getElementById('btn-qris-paid').addEventListener('click', () => {
             const btnQrisPaid = document.getElementById('btn-qris-paid');
-            const orderId = btnQrisPaid.getAttribute('data-order-id');
             const fileInput = document.getElementById('qris-proof-file');
             
             if (!fileInput.files || fileInput.files.length === 0) {
@@ -1375,15 +1357,25 @@ require_once __DIR__ . '/config/midtrans.php';
                 return;
             }
 
+            if (!currentCheckoutData) {
+                alert('Data transaksi tidak ditemukan. Silakan ulangi checkout.');
+                return;
+            }
+
             btnQrisPaid.disabled = true;
             btnQrisPaid.textContent = 'Memproses...';
             
-            // Mengirim data menggunakan FormData untuk mengunggah file
+            // Mengirim data menggunakan FormData untuk menyimpan pesanan & bukti pembayaran secara bersamaan
             const formData = new FormData();
-            formData.append('order_id', orderId);
+            formData.append('nama', currentCheckoutData.nama);
+            formData.append('telepon', currentCheckoutData.telepon);
+            formData.append('alamat', currentCheckoutData.alamat);
+            formData.append('items', JSON.stringify(currentCheckoutData.items));
+            formData.append('payment_type', 'qris');
+            formData.append('is_qris_direct', 'true');
             formData.append('bukti_bayar', fileInput.files[0]);
 
-            fetch('api/confirm_payment.php', {
+            fetch('api/checkout.php', {
                 method: 'POST',
                 body: formData
             })
@@ -1399,6 +1391,7 @@ require_once __DIR__ . '/config/midtrans.php';
                         document.getElementById('success-modal').classList.add('show');
                         
                         document.getElementById('qris-view').style.display = 'none';
+                        currentCheckoutData = null; // Reset
                     } else {
                         alert('Gagal mengonfirmasi pembayaran: ' + (data.message || 'Unknown error'));
                         btnQrisPaid.disabled = false;
