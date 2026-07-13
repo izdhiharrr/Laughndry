@@ -37,7 +37,13 @@ switch ($period) {
 }
 
 // Fetch customers
-$customers = $pdo->query("SELECT * FROM customer $where_clause ORDER BY nama ASC")->fetchAll();
+$customers = $pdo->query("
+    SELECT c.*, 
+           (SELECT COUNT(*) FROM `order` o WHERE o.customer_id = c.id) AS total_orders 
+    FROM customer c 
+    $where_clause 
+    ORDER BY c.nama ASC
+")->fetchAll();
 
 // Build HTML
 $html = '
@@ -63,16 +69,17 @@ $html = '
         <thead>
             <tr>
                 <th style="width: 5%;">ID</th>
-                <th style="width: 25%;">Nama</th>
-                <th style="width: 40%;">Alamat</th>
+                <th style="width: 20%;">Nama</th>
+                <th style="width: 35%;">Alamat</th>
                 <th style="width: 15%;">Nomor Telepon</th>
-                <th style="width: 15%;">Terdaftar</th>
+                <th style="width: 13%;">Terdaftar</th>
+                <th style="width: 12%; text-align: center;">Total Order</th>
             </tr>
         </thead>
         <tbody>';
 
 if (empty($customers)) {
-    $html .= '<tr><td colspan="5" style="text-align:center;">Tidak ada data pelanggan terdaftar pada periode ini.</td></tr>';
+    $html .= '<tr><td colspan="6" style="text-align:center;">Tidak ada data pelanggan terdaftar pada periode ini.</td></tr>';
 } else {
     foreach ($customers as $cust) {
         $html .= '<tr>
@@ -81,6 +88,7 @@ if (empty($customers)) {
             <td>' . htmlspecialchars($cust['alamat']) . '</td>
             <td>' . htmlspecialchars($cust['telepon']) . '</td>
             <td>' . date('d M Y', strtotime($cust['created_at'])) . '</td>
+            <td style="text-align: center; font-weight: bold; color: #00433a;">' . $cust['total_orders'] . 'x</td>
         </tr>';
     }
 }

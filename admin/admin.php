@@ -149,11 +149,12 @@ if ($is_admin) {
         ORDER BY o.created_at DESC
     ")->fetchAll();
 
-    // Fetch pelanggan dengan status pesanan terbaru
+    // Fetch pelanggan dengan status pesanan terbaru & jumlah total order
     $customers = $pdo->query("
         SELECT 
             c.*,
-            (SELECT o.status FROM `order` o WHERE o.customer_id = c.id ORDER BY o.created_at DESC LIMIT 1) AS latest_order_status
+            (SELECT o.status FROM `order` o WHERE o.customer_id = c.id ORDER BY o.created_at DESC LIMIT 1) AS latest_order_status,
+            (SELECT COUNT(*) FROM `order` o WHERE o.customer_id = c.id) AS total_orders
         FROM customer c
         ORDER BY c.id ASC
     ")->fetchAll();
@@ -845,7 +846,7 @@ if ($is_admin) {
                                         <th class="p-4 font-bold whitespace-normal" style="width: 250px; min-width: 250px; max-width: 250px;">Alamat</th>
                                         <th class="p-4 font-bold whitespace-normal" style="width: 130px; min-width: 130px; max-width: 130px;">Nomor Telepon</th>
                                         <th class="p-4 font-bold whitespace-normal" style="width: 120px; min-width: 120px; max-width: 120px;">Terdaftar</th>
-                                        <th class="p-4 font-bold text-center" style="width: 100px; min-width: 100px; max-width: 100px;">Delete</th>
+                                        <th class="p-4 font-bold text-center" style="width: 120px; min-width: 120px; max-width: 120px;">Total Order</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-outline-variant/20">
@@ -883,10 +884,10 @@ if ($is_admin) {
                                                     <?php endif; ?>
                                                 </td>
                                                 <td class="p-4 text-on-surface-variant text-sm whitespace-normal" style="width: 120px; min-width: 120px; max-width: 120px;" data-order="<?= strtotime($cust['created_at']) ?>"><?= date('d M Y', strtotime($cust['created_at'])) ?></td>
-                                                <td class="p-4 text-center" style="width: 100px; min-width: 100px; max-width: 100px;">
-                                                    <button type="button" onclick="deleteCustomer(<?= $cust['id'] ?>, '<?= htmlspecialchars($cust['nama'], ENT_QUOTES) ?>', this)" class="px-4 py-2 text-sm font-bold bg-surface border-2 border-outline-variant/30 text-on-surface-variant rounded-lg hover:bg-error hover:text-on-error hover:border-error transition-colors inline-flex items-center gap-1">
-                                                        <span class="material-symbols-outlined text-base">delete</span> Delete
-                                                    </button>
+                                                <td class="p-4 text-center" style="width: 120px; min-width: 120px; max-width: 120px;">
+                                                    <span class="font-extrabold text-[#00433a] text-base">
+                                                        <?= (int) $cust['total_orders'] ?>x
+                                                    </span>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>

@@ -40,7 +40,14 @@ switch ($period) {
 }
 
 // Fetch customers
-$customers = $pdo->query("SELECT * FROM customer $where_clause ORDER BY nama ASC")->fetchAll();
+// Fetch customers
+$customers = $pdo->query("
+    SELECT c.*, 
+           (SELECT COUNT(*) FROM `order` o WHERE o.customer_id = c.id) AS total_orders 
+    FROM customer c 
+    $where_clause 
+    ORDER BY c.nama ASC
+")->fetchAll();
 
 // Create new Spreadsheet object
 $spreadsheet = new Spreadsheet();
@@ -51,12 +58,12 @@ $sheet->setTitle('Laporan Pelanggan');
 $sheet->setShowGridlines(true);
 
 // 1. Title Block
-$sheet->mergeCells('A1:E1');
+$sheet->mergeCells('A1:F1');
 $sheet->setCellValue('A1', 'Laporan Profil Pelanggan Laughndry');
 $sheet->getStyle('A1')->getFont()->setSize(16)->setBold(true);
 $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-$sheet->mergeCells('A2:E2');
+$sheet->mergeCells('A2:F2');
 $sheet->setCellValue('A2', 'Periode: ' . $title_period . ' | Total Pelanggan: ' . count($customers));
 $sheet->getStyle('A2')->getFont()->setSize(11)->setItalic(true);
 $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -67,7 +74,8 @@ $headers = [
     'B4' => 'Nama Pelanggan',
     'C4' => 'Alamat',
     'D4' => 'Nomor Telepon',
-    'E4' => 'Tanggal Terdaftar'
+    'E4' => 'Tanggal Terdaftar',
+    'F4' => 'Total Order'
 ];
 
 foreach ($headers as $cell => $text) {
@@ -95,7 +103,7 @@ $headerStyle = [
         ],
     ],
 ];
-$sheet->getStyle('A4:E4')->applyFromArray($headerStyle);
+$sheet->getStyle('A4:F4')->applyFromArray($headerStyle);
 $sheet->getRowDimension(4)->setRowHeight(25);
 
 // 3. Write Data Rows
@@ -119,19 +127,21 @@ foreach ($customers as $cust) {
     $sheet->setCellValue('C' . $row, $cust['alamat']);
     $sheet->setCellValue('D' . $row, $cust['telepon']);
     $sheet->setCellValue('E' . $row, date('d M Y', strtotime($cust['created_at'])));
+    $sheet->setCellValue('F' . $row, $cust['total_orders'] . 'x');
     
     // Alignments
     $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getStyle('D' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getStyle('E' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $sheet->getStyle('F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     
-    $sheet->getStyle('A' . $row . ':E' . $row)->applyFromArray($dataStyle);
+    $sheet->getStyle('A' . $row . ':F' . $row)->applyFromArray($dataStyle);
     $sheet->getRowDimension($row)->setRowHeight(20);
     $row++;
 }
 
 // Auto-fit column widths
-foreach (range('A', 'E') as $col) {
+foreach (range('A', 'F') as $col) {
     $sheet->getColumnDimension($col)->setAutoSize(true);
 }
 
