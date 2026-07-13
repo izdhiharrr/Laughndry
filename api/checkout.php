@@ -151,7 +151,8 @@ try {
                     $pdo->rollBack();
                 }
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Gagal membaca gambar bukti pembayaran. Pastikan gambar jelas dan merupakan file gambar resi asli.']);
+                $err_details = (isset($last_ocr_error) && !empty($last_ocr_error)) ? ' (Detail: ' . $last_ocr_error . ')' : '';
+                echo json_encode(['success' => false, 'message' => 'Gagal membaca gambar bukti pembayaran. Pastikan gambar jelas dan merupakan file gambar resi asli.' . $err_details]);
                 exit;
             }
             

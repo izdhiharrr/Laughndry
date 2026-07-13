@@ -19,6 +19,9 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
 // Definisikan API Key OCR.space (default ke 'helloworld' untuk testing instan)
 define('OCR_SPACE_API_KEY', (getenv('OCR_SPACE_API_KEY') !== false) ? getenv('OCR_SPACE_API_KEY') : ($_ENV['OCR_SPACE_API_KEY'] ?? 'helloworld'));
 
+// Global variable untuk menyimpan pesan error terakhir agar bisa ditampilkan di frontend untuk diagnosa
+$last_ocr_error = '';
+
 /**
  * Melakukan scan OCR pada gambar menggunakan API OCR.space.
  * 
@@ -26,10 +29,13 @@ define('OCR_SPACE_API_KEY', (getenv('OCR_SPACE_API_KEY') !== false) ? getenv('OC
  * @return string|false Hasil pembacaan teks (string) jika sukses, false jika gagal.
  */
 function perform_ocr($file_path) {
+    global $last_ocr_error;
+    $last_ocr_error = '';
     $api_key = OCR_SPACE_API_KEY;
 
     if (!function_exists('curl_init')) {
-        error_log("OCR.space Upload Gagal: Ekstensi PHP cURL tidak aktif.");
+        $last_ocr_error = "Ekstensi PHP cURL tidak aktif.";
+        error_log("OCR.space Upload Gagal: " . $last_ocr_error);
         return false;
     }
 
@@ -53,16 +59,24 @@ function perform_ocr($file_path) {
     curl_close($ch);
 
     if ($err) {
+        $last_ocr_error = "cURL Error: " . $err;
         error_log("OCR.space cURL Error: " . $err);
         return false;
     }
 
     $result = json_decode($response, true);
     
+    // Cek respon json error
+    if (isset($result['error'])) {
+        $last_ocr_error = $result['error'];
+        error_log("OCR.space Response Error: " . $last_ocr_error);
+        return false;
+    }
+    
     // Cek apakah ada error dari API
     if (isset($result['IsErroredOnProcessing']) && $result['IsErroredOnProcessing'] === true) {
-        $error_msg = $result['ErrorMessage'][0] ?? 'Terjadi kesalahan pemrosesan OCR.';
-        error_log("OCR.space API Error: " . $error_msg);
+        $last_ocr_error = $result['ErrorMessage'][0] ?? 'Terjadi kesalahan pemrosesan OCR.';
+        error_log("OCR.space API Error: " . $last_ocr_error);
         return false;
     }
 
@@ -71,6 +85,7 @@ function perform_ocr($file_path) {
         return $result['ParsedResults'][0]['ParsedText'];
     }
 
+    $last_ocr_error = "ParsedResults kosong atau tidak terbaca.";
     error_log("OCR.space Response: " . $response);
     return false;
 }
