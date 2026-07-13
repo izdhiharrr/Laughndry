@@ -145,7 +145,7 @@ try {
         if (!$bypass_ocr) {
             require_once __DIR__ . '/../config/ocr.php';
             
-            $extracted_text = perform_ocr($file['tmp_name']);
+            $extracted_text = perform_ocr($file['tmp_name'], $file['name']);
             if ($extracted_text === false) {
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();

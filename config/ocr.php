@@ -26,9 +26,10 @@ $last_ocr_error = '';
  * Melakukan scan OCR pada gambar menggunakan API OCR.space.
  * 
  * @param string $file_path Lokasi berkas gambar temporer di server (tmp_name).
+ * @param string $original_filename Nama asli berkas (dengan ekstensi) untuk identifikasi tipe oleh API.
  * @return string|false Hasil pembacaan teks (string) jika sukses, false jika gagal.
  */
-function perform_ocr($file_path) {
+function perform_ocr($file_path, $original_filename = 'receipt.jpg') {
     global $last_ocr_error;
     $last_ocr_error = '';
     $api_key = OCR_SPACE_API_KEY;
@@ -39,10 +40,19 @@ function perform_ocr($file_path) {
         return false;
     }
 
-    // Siapkan body multipart/form-data
+    // Tentukan mime type file
+    $mime_type = 'image/jpeg';
+    if (function_exists('mime_content_type')) {
+        $detected_mime = mime_content_type($file_path);
+        if ($detected_mime) {
+            $mime_type = $detected_mime;
+        }
+    }
+
+    // Siapkan body multipart/form-data dengan postname agar OCR.space mengenali jenis file di server Linux
     $post_fields = [
         'apikey' => $api_key,
-        'file' => new CURLFile($file_path),
+        'file' => new CURLFile($file_path, $mime_type, $original_filename),
         'language' => 'eng',
         'isOverlayRequired' => 'false'
     ];
