@@ -178,10 +178,10 @@ try {
                                  strpos($extracted_text_lc, 'laughndr') !== false || 
                                  strpos($extracted_text_lc, '9360000801649145786') !== false);
                 
-                // Validasi kata kunci umum transaksi keuangan Indonesia
+                 // Validasi kata kunci umum transaksi keuangan Indonesia
                 $keywords = [
                     'rp', 'transfer', 'nominal', 'transaksi', 'sukses', 'berhasil', 
-                    'bayar', 'pembayaran', 'qris', 'bank', 'gopay', 'ovo', 'dana', 
+                    'pembayaran', 'qris', 'bank', 'gopay', 'ovo', 'dana', 
                     'linkaja', 'shopee', 'rekening', 'total', 'jumlah', 'success', 'send'
                 ];
                 
@@ -192,7 +192,7 @@ try {
                     }
                 }
                 
-                if (!$has_merchant || $match_count < 2) {
+                if (!$has_merchant || $match_count < 3) {
                     if ($pdo->inTransaction()) {
                         $pdo->rollBack();
                     }
